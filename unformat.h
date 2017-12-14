@@ -1,7 +1,5 @@
 #pragma once
 
-#include <type_traits>
-#include <string>
 #include <sstream>
 
 namespace ay
@@ -20,6 +18,24 @@ namespace ay
 	inline void unformat_arg<std::string>(const char* input, std::size_t size, std::string& output)
 	{
 		output.assign(input, size);
+	}
+
+	template <>
+	inline void unformat_arg<int>(const char* input, std::size_t size, int& output)
+	{
+		output = 0;
+		int dec = 1;
+		if (input[0] == '-')
+		{
+			dec = -1;
+			input++;
+			size--;
+		}
+		for (int i = size - 1; i >= 0; i--)
+		{
+			output += (input[i] - '0') * dec;
+			dec *= 10;
+		}
 	}
 
 	// Empty function to end recursion, no more args to process
