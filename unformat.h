@@ -1,7 +1,9 @@
 #pragma once
 
-#if _MSC_VER >= 1910
+#ifdef _MSC_VER
+#if _MSC_VER >= 1910 && _HAS_CXX17
 #define UNFORMAT_CPP17
+#endif
 #endif
 
 #include <sstream>
@@ -37,6 +39,31 @@ namespace ay
 	}
 
 	template <>
+	inline void unformat_arg<float>(const char* input, std::size_t size, float& output)
+	{
+		output = 0;
+		int dec = 1;
+		if (input[0] == '-')
+		{
+			dec = -1;
+			input++;
+			size--;
+		}
+
+		for (int i = size - 1; i >= 0; i--)
+		{
+			if (input[i] == '.' && output != 0.0f)
+			{
+				output /= dec;
+				dec = 1;
+				continue;
+			}
+			output += (input[i] - '0') * dec;
+			dec *= 10;
+		}
+	}
+
+	template <>
 	inline void unformat_arg<int>(const char* input, std::size_t size, int& output)
 	{
 		output = 0;
@@ -47,6 +74,18 @@ namespace ay
 			input++;
 			size--;
 		}
+		for (int i = size - 1; i >= 0; i--)
+		{
+			output += (input[i] - '0') * dec;
+			dec *= 10;
+		}
+	}
+
+	template <>
+	inline void unformat_arg<unsigned int>(const char* input, std::size_t size, unsigned int& output)
+	{
+		output = 0;
+		int dec = 1;
 		for (int i = size - 1; i >= 0; i--)
 		{
 			output += (input[i] - '0') * dec;
