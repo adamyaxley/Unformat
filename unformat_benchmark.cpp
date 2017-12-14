@@ -4,12 +4,19 @@
 
 const std::string g_input = "Harry is 18 years old and weighs 67.8 kilograms";
 
+#ifdef UNFORMAT_CPP17
+#include <string_view>
+using string_type = std::string_view;
+#else
+using string_type = std::string;
+#endif
+
 static void Unformat(benchmark::State& state)
 {
-	std::string name;
+	string_type name;
 	int age;
 	float weight;
-	std::string units;
+	string_type units;
 	for (auto _ : state)
 	{
 		ay::unformat(g_input, "{} is {} years old and weighs {} {}", name, age, weight, units);

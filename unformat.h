@@ -1,6 +1,13 @@
 #pragma once
 
+#if _MSC_VER >= 1910
+#define UNFORMAT_CPP17
+#endif
+
 #include <sstream>
+#ifdef UNFORMAT_CPP17
+#include <string_view>
+#endif
 
 namespace ay
 {
@@ -12,6 +19,15 @@ namespace ay
 		std::istringstream stream(value);
 		stream >> output;
 	}
+
+#ifdef UNFORMAT_CPP17
+	template <>
+	inline void unformat_arg<std::string_view>(const char* input, std::size_t size, std::string_view& output)
+	{
+		std::string_view newOutput(input, size);
+		std::swap(output, newOutput);
+	}
+#endif
 
 	// This is an optimisation to remove the need to create a stream for parsing strings
 	template <>
