@@ -11,6 +11,13 @@
 #include <string_view>
 #endif
 
+namespace
+{
+	struct real_type;
+	struct signed_int_type;
+	struct unsigned_int_type;
+}
+
 namespace ay
 {
 	// Unformat a single argument using std::istringstream
@@ -22,6 +29,12 @@ namespace ay
 		stream >> output;
 	}
 
+	template <>
+	inline void unformat_arg<char>(const char* input, std::size_t size, char& output)
+	{
+		output = input[0];
+	}
+
 #ifdef UNFORMAT_CPP17
 	template <>
 	inline void unformat_arg<std::string_view>(const char* input, std::size_t size, std::string_view& output)
@@ -31,7 +44,6 @@ namespace ay
 	}
 #endif
 
-	// This is an optimisation to remove the need to create a stream for parsing strings
 	template <>
 	inline void unformat_arg<std::string>(const char* input, std::size_t size, std::string& output)
 	{
