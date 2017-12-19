@@ -6,7 +6,7 @@
 #endif
 #endif
 
-#include <sstream>
+#include <string>
 #ifdef UNFORMAT_CPP17
 #include <string_view>
 #endif
@@ -74,14 +74,10 @@ namespace
 
 namespace ay
 {
-	// Unformat a single argument using std::istringstream
+	// Not defined on purpose for the general case. Note that you can define custom unformatters by defining new specialisations
+	// for this function.
 	template <typename T>
-	void unformat_arg(const char* input, const char* inputEnd, T& output)
-	{
-		std::string value(input, inputEnd - input);
-		std::istringstream stream(value);
-		stream >> output;
-	}
+	void unformat_arg(const char* input, const char* inputEnd, T& output);
 
 	template <>
 	inline void unformat_arg<char>(const char* input, const char* inputEnd, char& output)

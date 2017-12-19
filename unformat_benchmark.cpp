@@ -1,5 +1,6 @@
 #include <benchmark/benchmark.h>
 #include <regex>
+#include <sstream>
 #include "unformat.h"
 
 const std::string g_input = "Harry is 18 years old and weighs 67.8 kilograms";
