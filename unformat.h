@@ -14,56 +14,59 @@
 namespace
 {
 	template <typename T>
-	void unformat_signed_int(const char* input, std::size_t size, T& output)
+	void unformat_signed_int(const char* input, const char* inputEnd, T& output)
 	{
 		output = 0;
 		int dec = 1;
-		if (input[0] == '-')
+		if (*input == '-')
 		{
 			dec = -1;
 			input++;
-			size--;
 		}
-		for (int i = size - 1; i >= 0; i--)
+
+		while (input != inputEnd)
 		{
-			output += (input[i] - '0') * dec;
+			--inputEnd;
+			output += (*inputEnd - '0') * dec;
 			dec *= 10;
 		}
 	}
 
 	template <typename T>
-	void unformat_unsigned_int(const char* input, std::size_t size, T& output)
+	void unformat_unsigned_int(const char* input, const char* inputEnd, T& output)
 	{
 		output = 0;
 		int dec = 1;
-		for (int i = size - 1; i >= 0; i--)
+
+		while (input != inputEnd)
 		{
-			output += (input[i] - '0') * dec;
+			--inputEnd;
+			output += (*inputEnd - '0') * dec;
 			dec *= 10;
 		}
 	}
 
 	template <typename T>
-	void unformat_real(const char* input, std::size_t size, T& output)
+	void unformat_real(const char* input, const char* inputEnd, T& output)
 	{
 		output = 0;
 		int dec = 1;
-		if (input[0] == '-')
+		if (*input == '-')
 		{
 			dec = -1;
 			input++;
-			size--;
 		}
 
-		for (int i = size - 1; i >= 0; i--)
+		while (input != inputEnd)
 		{
-			if (input[i] == '.' && output != 0.0f)
+			--inputEnd;
+			if (*inputEnd == '.' && output != 0.0f)
 			{
 				output /= dec;
 				dec = 1;
 				continue;
 			}
-			output += (input[i] - '0') * dec;
+			output += (*inputEnd - '0') * dec;
 			dec *= 10;
 		}
 	}
@@ -73,50 +76,50 @@ namespace ay
 {
 	// Unformat a single argument using std::istringstream
 	template <typename T>
-	void unformat_arg(const char* input, std::size_t size, T& output)
+	void unformat_arg(const char* input, const char* inputEnd, T& output)
 	{
-		std::string value(input, size);
+		std::string value(input, inputEnd - input);
 		std::istringstream stream(value);
 		stream >> output;
 	}
 
 	template <>
-	inline void unformat_arg<char>(const char* input, std::size_t size, char& output)
+	inline void unformat_arg<char>(const char* input, const char* inputEnd, char& output)
 	{
 		output = input[0];
 	}
 
 #ifdef UNFORMAT_CPP17
 	template <>
-	inline void unformat_arg<std::string_view>(const char* input, std::size_t size, std::string_view& output)
+	inline void unformat_arg<std::string_view>(const char* input, const char* inputEnd, std::string_view& output)
 	{
-		std::string_view newOutput(input, size);
+		std::string_view newOutput(input, inputEnd - input);
 		std::swap(output, newOutput);
 	}
 #endif
 
 	template <>
-	inline void unformat_arg<std::string>(const char* input, std::size_t size, std::string& output)
+	inline void unformat_arg<std::string>(const char* input, const char* inputEnd, std::string& output)
 	{
-		output.assign(input, size);
+		output.assign(input, inputEnd - input);
 	}
 
 	template <>
-	inline void unformat_arg<float>(const char* input, std::size_t size, float& output)
+	inline void unformat_arg<float>(const char* input, const char* inputEnd, float& output)
 	{
-		unformat_real<float>(input, size, output);
+		unformat_real<float>(input, inputEnd, output);
 	}
 
 	template <>
-	inline void unformat_arg<int>(const char* input, std::size_t size, int& output)
+	inline void unformat_arg<int>(const char* input, const char* inputEnd, int& output)
 	{
-		unformat_signed_int<int>(input, size, output);
+		unformat_signed_int<int>(input, inputEnd, output);
 	}
 
 	template <>
-	inline void unformat_arg<unsigned int>(const char* input, std::size_t size, unsigned int& output)
+	inline void unformat_arg<unsigned int>(const char* input, const char* inputEnd, unsigned int& output)
 	{
-		unformat_unsigned_int<unsigned int>(input, size, output);
+		unformat_unsigned_int<unsigned int>(input, inputEnd, output);
 	}
 
 	// Empty function to end recursion, no more args to process
@@ -149,7 +152,7 @@ namespace ay
 		}();
 
 		// Process this arg
-		unformat_arg(&input[inputPos], inputEnd - inputPos, first);
+		unformat_arg(&input[inputPos], &input[inputEnd], first);
 
 		// Process TRest
 		unformat(inputEnd, formatStart + 2, input, format, rest...);
