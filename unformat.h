@@ -13,9 +13,60 @@
 
 namespace
 {
-	struct real_type;
-	struct signed_int_type;
-	struct unsigned_int_type;
+	template <typename T>
+	void unformat_signed_int(const char* input, std::size_t size, T& output)
+	{
+		output = 0;
+		int dec = 1;
+		if (input[0] == '-')
+		{
+			dec = -1;
+			input++;
+			size--;
+		}
+		for (int i = size - 1; i >= 0; i--)
+		{
+			output += (input[i] - '0') * dec;
+			dec *= 10;
+		}
+	}
+
+	template <typename T>
+	void unformat_unsigned_int(const char* input, std::size_t size, T& output)
+	{
+		output = 0;
+		int dec = 1;
+		for (int i = size - 1; i >= 0; i--)
+		{
+			output += (input[i] - '0') * dec;
+			dec *= 10;
+		}
+	}
+
+	template <typename T>
+	void unformat_real(const char* input, std::size_t size, T& output)
+	{
+		output = 0;
+		int dec = 1;
+		if (input[0] == '-')
+		{
+			dec = -1;
+			input++;
+			size--;
+		}
+
+		for (int i = size - 1; i >= 0; i--)
+		{
+			if (input[i] == '.' && output != 0.0f)
+			{
+				output /= dec;
+				dec = 1;
+				continue;
+			}
+			output += (input[i] - '0') * dec;
+			dec *= 10;
+		}
+	}
 }
 
 namespace ay
@@ -53,56 +104,19 @@ namespace ay
 	template <>
 	inline void unformat_arg<float>(const char* input, std::size_t size, float& output)
 	{
-		output = 0;
-		int dec = 1;
-		if (input[0] == '-')
-		{
-			dec = -1;
-			input++;
-			size--;
-		}
-
-		for (int i = size - 1; i >= 0; i--)
-		{
-			if (input[i] == '.' && output != 0.0f)
-			{
-				output /= dec;
-				dec = 1;
-				continue;
-			}
-			output += (input[i] - '0') * dec;
-			dec *= 10;
-		}
+		unformat_real<float>(input, size, output);
 	}
 
 	template <>
 	inline void unformat_arg<int>(const char* input, std::size_t size, int& output)
 	{
-		output = 0;
-		int dec = 1;
-		if (input[0] == '-')
-		{
-			dec = -1;
-			input++;
-			size--;
-		}
-		for (int i = size - 1; i >= 0; i--)
-		{
-			output += (input[i] - '0') * dec;
-			dec *= 10;
-		}
+		unformat_signed_int<int>(input, size, output);
 	}
 
 	template <>
 	inline void unformat_arg<unsigned int>(const char* input, std::size_t size, unsigned int& output)
 	{
-		output = 0;
-		int dec = 1;
-		for (int i = size - 1; i >= 0; i--)
-		{
-			output += (input[i] - '0') * dec;
-			dec *= 10;
-		}
+		unformat_unsigned_int<unsigned int>(input, size, output);
 	}
 
 	// Empty function to end recursion, no more args to process
