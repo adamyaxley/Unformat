@@ -29,7 +29,7 @@ static void Unformat(benchmark::State& state)
 
 BENCHMARK(Unformat);
 
-static void StringStream(benchmark::State& state)
+static void StdStringStream(benchmark::State& state)
 {
 	std::string name;
 	int age;
@@ -51,7 +51,7 @@ static void StringStream(benchmark::State& state)
 	}
 }
 
-BENCHMARK(StringStream);
+BENCHMARK(StdStringStream);
 
 static void StdRegex(benchmark::State& state)
 {
