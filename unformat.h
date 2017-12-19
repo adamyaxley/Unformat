@@ -89,6 +89,12 @@ namespace ay
 		output = input[0];
 	}
 
+	template <>
+	inline void unformat_arg<unsigned char>(const char* input, const char* inputEnd, unsigned char& output)
+	{
+		output = input[0];
+	}
+
 #ifdef UNFORMAT_CPP17
 	template <>
 	inline void unformat_arg<std::string_view>(const char* input, const char* inputEnd, std::string_view& output)
@@ -111,15 +117,57 @@ namespace ay
 	}
 
 	template <>
+	inline void unformat_arg<double>(const char* input, const char* inputEnd, double& output)
+	{
+		unformat_real<double>(input, inputEnd, output);
+	}
+
+	template <>
+	inline void unformat_arg<short>(const char* input, const char* inputEnd, short& output)
+	{
+		unformat_signed_int<short>(input, inputEnd, output);
+	}
+
+	template <>
 	inline void unformat_arg<int>(const char* input, const char* inputEnd, int& output)
 	{
 		unformat_signed_int<int>(input, inputEnd, output);
 	}
 
 	template <>
+	inline void unformat_arg<long>(const char* input, const char* inputEnd, long& output)
+	{
+		unformat_signed_int<long>(input, inputEnd, output);
+	}
+
+	template <>
+	inline void unformat_arg<long long>(const char* input, const char* inputEnd, long long& output)
+	{
+		unformat_signed_int<long long>(input, inputEnd, output);
+	}
+
+	template <>
+	inline void unformat_arg<unsigned short>(const char* input, const char* inputEnd, unsigned short& output)
+	{
+		unformat_unsigned_int<unsigned short>(input, inputEnd, output);
+	}
+
+	template <>
 	inline void unformat_arg<unsigned int>(const char* input, const char* inputEnd, unsigned int& output)
 	{
 		unformat_unsigned_int<unsigned int>(input, inputEnd, output);
+	}
+
+	template <>
+	inline void unformat_arg<unsigned long>(const char* input, const char* inputEnd, unsigned long& output)
+	{
+		unformat_unsigned_int<unsigned long>(input, inputEnd, output);
+	}
+
+	template <>
+	inline void unformat_arg<unsigned long long>(const char* input, const char* inputEnd, unsigned long long& output)
+	{
+		unformat_unsigned_int<unsigned long long>(input, inputEnd, output);
 	}
 
 	// Empty function to end recursion, no more args to process
