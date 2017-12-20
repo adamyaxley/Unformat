@@ -166,42 +166,6 @@ namespace ay
 		unformat_unsigned_int<unsigned long long>(input, inputEnd, output);
 	}
 
-	// Empty function to end recursion, no more args to process
-	inline void unformat(std::size_t inputPos, std::size_t formatPos, const std::string& input, const std::string& format)
-	{
-	}
-
-	template <typename T, typename... TRest>
-	void unformat(std::size_t inputPos, std::size_t formatPos, const std::string& input, const std::string& format, T& first, TRest&... rest) noexcept
-	{
-		// Find {}
-		const auto formatStart = format.find("{}", formatPos);
-		if (formatStart == std::string::npos)
-		{
-			return;
-		}
-
-		// Find input string
-		inputPos += formatStart - formatPos;
-		auto inputEndChar = format[formatStart + 2];
-		const std::size_t inputEnd = [&]() {
-			if (inputEndChar == '\0')
-			{
-				return input.length();
-			}
-			else
-			{
-				return input.find(inputEndChar, inputPos);
-			}
-		}();
-
-		// Process this arg
-		unformat_arg(&input[inputPos], &input[inputEnd], first);
-
-		// Process TRest
-		unformat(inputEnd, formatStart + 2, input, format, rest...);
-	}
-
 	struct format
 	{
 		static constexpr std::size_t MAX_COUNT{ 16 };
@@ -213,9 +177,14 @@ namespace ay
 	template <std::size_t N>
 	constexpr format make_format(const char(&str)[N])
 	{
+		return make_format_non_template(str, N);
+	}
+
+	constexpr format make_format_non_template(const char* str, std::size_t N)
+	{
 		format format;
 
-		for (int i = 0; i < N - 1; i++)
+		for (std::size_t i = 0; i < N - 1; i++)
 		{
 			if (str[i] == '{' && str[i + 1] == '}')
 			{
@@ -243,7 +212,7 @@ namespace ay
 	{
 		const std::size_t argNo = format.count - sizeof...(rest) - 1;
 
-		// Find {}
+		// Get the location of the first brace
 		const auto formatStart = format.braces[argNo];
 
 		// Find input string
@@ -291,6 +260,6 @@ namespace ay
 	template <typename... Args>
 	void unformat(const std::string& input, const std::string& format, Args&... args) noexcept
 	{
-		unformat(0, 0, input, format, args...);
+		unformat(0, 0, input, make_format_non_template(format.c_str(), format.size()), args...);
 	}
 }
