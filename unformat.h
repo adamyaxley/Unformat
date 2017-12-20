@@ -202,6 +202,85 @@ namespace ay
 		unformat(inputEnd, formatStart + 2, input, format, rest...);
 	}
 
+	struct format
+	{
+		static constexpr std::size_t MAX_COUNT{ 16 };
+		std::size_t braces[MAX_COUNT]{};
+		char endChar[MAX_COUNT]{};
+		std::size_t count{ 0 };
+	};
+
+	template <std::size_t N>
+	constexpr format make_format(const char(&str)[N])
+	{
+		format format;
+
+		for (int i = 0; i < N - 1; i++)
+		{
+			if (str[i] == '{' && str[i + 1] == '}')
+			{
+				if (format.count >= format::MAX_COUNT)
+				{
+					// Stops compilation in a constexpr context
+					throw std::exception("Max number of {} has been exceeded.");
+				}
+				format.braces[format.count] = i;
+				format.endChar[format.count] = str[i + 2]; // May be '\0' which is fine
+				++format.count;
+			}
+		}
+
+		return format;
+	}
+
+	// Empty function to end recursion, no more args to process
+	inline void unformat(std::size_t inputPos, std::size_t formatPos, const std::string& input, const format& format)
+	{
+	}
+
+	template <typename T, typename... TRest>
+	void unformat(std::size_t inputPos, std::size_t formatPos, const std::string& input, const format& format, T& first, TRest&... rest) noexcept
+	{
+		const std::size_t argNo = format.count - sizeof...(rest) - 1;
+
+		// Find {}
+		const auto formatStart = format.braces[argNo];
+
+		// Find input string
+		inputPos += formatStart - formatPos;
+		auto inputEndChar = format.endChar[argNo];
+		const std::size_t inputEnd = [&]() {
+			if (inputEndChar == '\0')
+			{
+				return input.length();
+			}
+			else
+			{
+				return input.find(inputEndChar, inputPos);
+			}
+		}();
+
+		// Process this arg
+		unformat_arg(&input[inputPos], &input[inputEnd], first);
+
+		// Process TRest
+		unformat(inputEnd, formatStart + 2, input, format, rest...);
+	}
+
+	// Parses and extracts data from 'input' given a braced styled "{}" 'format' into 'args...'
+	// For example:
+	//     std::string name, int age;
+	//     constexpr auto format = make_format("{} is {} years old.");
+	//     unformat("Harry is 18 years old.", format, name, age);
+	//
+	// Then the following data is extracted:
+	//     name == "Harry" and age == 18
+	template <typename... Args>
+	void unformat(const std::string& input, const format& format, Args&... args) noexcept
+	{
+		unformat(0, 0, input, format, args...);
+	}
+
 	// Parses and extracts data from 'input' given a braced styled "{}" 'format' into 'args...'
 	// For example:
 	//     std::string name, int age;
