@@ -1,41 +1,40 @@
 #include "unformat.h"
-#include <cassert>
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
-int main()
+TEST(Unformat, Basic)
 {
 	// Basic test to extract a single integer
-	{
-		int output;
-		ay::unformat("4", "{}", output);
-		assert(4 == output);
+	int output;
+	ay::unformat("4", "{}", output);
+	ASSERT_EQ(4, output);
 
-		ay::unformat("  5  ", "  {}  ", output);
-		assert(5 == output);
+	ay::unformat("  5  ", "  {}  ", output);
+	ASSERT_EQ(5, output);
 
-		ay::unformat("  6", "  {}", output);
-		assert(6 == output);
+	ay::unformat("  6", "  {}", output);
+	ASSERT_EQ(6, output);
 
-		ay::unformat("7  ", "{}  ", output);
-		assert(7 == output);
-	}
+	ay::unformat("7  ", "{}  ", output);
+	ASSERT_EQ(7, output);
+}
 
-	// Simple example extracting a string and an integer
-	{
-		std::string name;
-		int age;
-		ay::unformat("Harry is 18 years old.", "{} is {} years old.", name, age);
-		assert(std::string("Harry") == name);
-		assert(18 == age);
-	}
+TEST(Unformat, TwoVars)
+{
+	std::string name;
+	int age;
+	ay::unformat("Harry is 18 years old.", "{} is {} years old.", name, age);
+	ASSERT_EQ(std::string("Harry"), name);
+	ASSERT_EQ(18, age);
+}
 	
-	// Slightly more complicated example
-	{
-		std::string name;
-		int weight;
-		std::string supporting;
-		ay::unformat("gpmvdo (78) -> jjixrr, zacrh, smylfq, fdvtn", "{} ({}) -> {}", name, weight, supporting);
-		assert(std::string("gpmvdo") == name);
-		assert(std::string("jjixrr, zacrh, smylfq, fdvtn") == supporting);
-		assert(78 == weight);
-	}
+TEST(Unformat, ThreeVars)
+{
+	std::string name;
+	int weight;
+	std::string supporting;
+	ay::unformat("gpmvdo (78) -> jjixrr, zacrh, smylfq, fdvtn", "{} ({}) -> {}", name, weight, supporting);
+	ASSERT_EQ(std::string("gpmvdo"), name);
+	ASSERT_EQ(std::string("jjixrr, zacrh, smylfq, fdvtn"), supporting);
+	ASSERT_EQ(78, weight);
 }
