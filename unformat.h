@@ -203,12 +203,12 @@ namespace ay
 	}
 
 	// Empty function to end recursion, no more args to process
-	inline void unformat(std::size_t inputPos, std::size_t formatPos, const std::string& input, const format& format)
+	inline void unformat_internal(std::size_t inputPos, std::size_t formatPos, const std::string& input, const format& format)
 	{
 	}
 
 	template <typename T, typename... TRest>
-	void unformat(std::size_t inputPos, std::size_t formatPos, const std::string& input, const format& format, T& first, TRest&... rest) noexcept
+	void unformat_internal(std::size_t inputPos, std::size_t formatPos, const std::string& input, const format& format, T& first, TRest&... rest) noexcept
 	{
 		const std::size_t argNo = format.count - sizeof...(rest) - 1;
 
@@ -233,7 +233,7 @@ namespace ay
 		unformat_arg(&input[inputPos], &input[inputEnd], first);
 
 		// Process TRest
-		unformat(inputEnd, formatStart + 2, input, format, rest...);
+		unformat_internal(inputEnd, formatStart + 2, input, format, rest...);
 	}
 
 	// Parses and extracts data from 'input' given a braced styled "{}" 'format' into 'args...'
@@ -247,7 +247,7 @@ namespace ay
 	template <typename... Args>
 	void unformat(const std::string& input, const format& format, Args&... args) noexcept
 	{
-		unformat(0, 0, input, format, args...);
+		unformat_internal(0, 0, input, format, args...);
 	}
 
 	// Parses and extracts data from 'input' given a braced styled "{}" 'format' into 'args...'
@@ -260,6 +260,6 @@ namespace ay
 	template <typename... Args>
 	void unformat(const std::string& input, const std::string& format, Args&... args) noexcept
 	{
-		unformat(0, 0, input, make_format_non_template(format.c_str(), format.size()), args...);
+		unformat_internal(0, 0, input, make_format_non_template(format.c_str(), format.size()), args...);
 	}
 }
