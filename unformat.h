@@ -217,17 +217,11 @@ namespace ay
 
 		// Find input string
 		inputPos += formatStart - formatPos;
-		auto inputEndChar = format.endChar[argNo];
-		const std::size_t inputEnd = [&]() {
-			if (inputEndChar == '\0')
-			{
-				return input.length();
-			}
-			else
-			{
-				return input.find(inputEndChar, inputPos);
-			}
-		}();
+		auto inputEnd = inputPos + 1;
+		while (input[inputEnd] != format.endChar[argNo])
+		{
+			++inputEnd;
+		}
 
 		// Process this arg
 		unformat_arg(&input[inputPos], &input[inputEnd], first);
