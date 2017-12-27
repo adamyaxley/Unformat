@@ -1,6 +1,7 @@
 #include <benchmark/benchmark.h>
 #include <regex>
 #include <sstream>
+#include <cstdio>
 #include "unformat.h"
 
 const std::string g_input = "Harry is 18 years old and weighs 67.8 kilograms";
@@ -97,5 +98,23 @@ static void StdRegex(benchmark::State& state)
 }
 
 BENCHMARK(StdRegex);
+
+static void StdScanf(benchmark::State& state)
+{
+	char name[16];
+	int age;
+	float weight;
+	char units[16];
+	for (auto _ : state)
+	{
+		std::sscanf(g_input.c_str(), "%s is %d years old and weighs %f %s", &name, &age, &weight, &units);
+		benchmark::DoNotOptimize(name);
+		benchmark::DoNotOptimize(age);
+		benchmark::DoNotOptimize(weight);
+		benchmark::DoNotOptimize(units);
+	}
+}
+
+BENCHMARK(StdScanf);
 
 BENCHMARK_MAIN();
