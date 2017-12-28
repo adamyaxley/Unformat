@@ -48,32 +48,36 @@ namespace
 	template <typename T>
 	void fuzzReal()
 	{
-		std::mt19937 engine;
-		std::uniform_real_distribution<T> dist(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
-
-		for (int i = 0; i < FUZZ_COUNT; i++)
-		{
-			auto input = dist(engine);
-			T output;
-			constexpr auto format = ay::make_format("{}");
-			ay::unformat(std::to_string(input), format, output);
-			ASSERT_EQ(input, output);
-		}
+		fuzz<T, std::uniform_real_distribution<T>>();
 	}
 
 	template <typename T>
 	void fuzzInt()
 	{
+		fuzz<T, std::uniform_int_distribution<T>>();
+	}
+
+	template <typename T, typename DISTRIBUTION>
+	void fuzz()
+	{
 		std::mt19937 engine;
-		std::uniform_int_distribution<T> dist(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
+		DISTRIBUTION dist(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
+		constexpr auto format = ay::make_format("{}");
 
 		for (int i = 0; i < FUZZ_COUNT; i++)
 		{
-			auto input = dist(engine);
+			const auto input = dist(engine);
 			T output;
-			constexpr auto format = ay::make_format("{}");
-			ay::unformat(std::to_string(input), format, output);
-			ASSERT_EQ(input, output);
+
+			std::stringstream stream;
+			stream << input;
+			ay::unformat(stream.str().c_str(), format, output);
+			T streamOutput;
+			stream >> streamOutput;
+			ASSERT_EQ(streamOutput, output) << "Test that unformat and std::stringstream are equal at default precision";
+			
+			ay::unformat(std::to_string(input).c_str(), format, output);
+			ASSERT_EQ(input, output) << "Test that unformat is the exact lossless opposite of std::to_string";
 		}
 	}
 }
