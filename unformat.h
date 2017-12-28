@@ -17,32 +17,31 @@ namespace
 	void unformat_signed_int(const char* input, const char* inputEnd, T& output) noexcept
 	{
 		output = 0;
-		int dec = 1;
+		int sign = 1;
 		if (*input == '-')
 		{
-			dec = -1;
-			input++;
+			sign = -1;
+			++input;
 		}
 
 		while (input != inputEnd)
 		{
-			--inputEnd;
-			output += (*inputEnd - '0') * dec;
-			dec *= 10;
+			output *= 10;
+			output += (*input - '0');
+			++input;
 		}
+		output *= sign;
 	}
 
 	template <typename T>
 	void unformat_unsigned_int(const char* input, const char* inputEnd, T& output) noexcept
 	{
 		output = 0;
-		int dec = 1;
-
 		while (input != inputEnd)
 		{
-			--inputEnd;
-			output += (*inputEnd - '0') * dec;
-			dec *= 10;
+			output *= 10;
+			output += (*input - '0');
+			++input;
 		}
 	}
 

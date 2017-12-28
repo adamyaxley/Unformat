@@ -121,3 +121,13 @@ TEST(Unformat, FuzzUnsignedLong)
 {
 	fuzzInt<unsigned long>();
 }
+
+TEST(Unformat, FuzzLongLong)
+{
+	fuzzInt<long long>();
+}
+
+TEST(Unformat, FuzzUnsignedLongLong)
+{
+	fuzzInt<unsigned long long>();
+}
