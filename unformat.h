@@ -14,7 +14,7 @@
 namespace
 {
 	template <typename T>
-	void unformat_signed_int(const char* input, const char* inputEnd, T& output)
+	void unformat_signed_int(const char* input, const char* inputEnd, T& output) noexcept
 	{
 		output = 0;
 		int dec = 1;
@@ -33,7 +33,7 @@ namespace
 	}
 
 	template <typename T>
-	void unformat_unsigned_int(const char* input, const char* inputEnd, T& output)
+	void unformat_unsigned_int(const char* input, const char* inputEnd, T& output) noexcept
 	{
 		output = 0;
 		int dec = 1;
@@ -47,7 +47,7 @@ namespace
 	}
 
 	template <typename T>
-	void unformat_real(const char* input, const char* inputEnd, T& output)
+	void unformat_real(const char* input, const char* inputEnd, T& output) noexcept
 	{
 		output = 0;
 		int dec = 1;
@@ -77,90 +77,90 @@ namespace ay
 	// Not defined on purpose for the general case. Note that you can define custom unformatters by defining new specialisations
 	// for this function.
 	template <typename T>
-	void unformat_arg(const char* input, const char* inputEnd, T& output);
+	void unformat_arg(const char* input, const char* inputEnd, T& output) noexcept;
 
 	template <>
-	inline void unformat_arg<char>(const char* input, const char* inputEnd, char& output)
+	inline void unformat_arg<char>(const char* input, const char* inputEnd, char& output) noexcept
 	{
 		output = input[0];
 	}
 
 	template <>
-	inline void unformat_arg<unsigned char>(const char* input, const char* inputEnd, unsigned char& output)
+	inline void unformat_arg<unsigned char>(const char* input, const char* inputEnd, unsigned char& output) noexcept
 	{
 		output = input[0];
 	}
 
 #ifdef UNFORMAT_CPP17
 	template <>
-	inline void unformat_arg<std::string_view>(const char* input, const char* inputEnd, std::string_view& output)
+	inline void unformat_arg<std::string_view>(const char* input, const char* inputEnd, std::string_view& output) noexcept
 	{
 		output = std::string_view(input, inputEnd - input);
 	}
 #endif
 
 	template <>
-	inline void unformat_arg<std::string>(const char* input, const char* inputEnd, std::string& output)
+	inline void unformat_arg<std::string>(const char* input, const char* inputEnd, std::string& output) noexcept
 	{
 		output.assign(input, inputEnd - input);
 	}
 
 	template <>
-	inline void unformat_arg<float>(const char* input, const char* inputEnd, float& output)
+	inline void unformat_arg<float>(const char* input, const char* inputEnd, float& output) noexcept
 	{
 		unformat_real<float>(input, inputEnd, output);
 	}
 
 	template <>
-	inline void unformat_arg<double>(const char* input, const char* inputEnd, double& output)
+	inline void unformat_arg<double>(const char* input, const char* inputEnd, double& output) noexcept
 	{
 		unformat_real<double>(input, inputEnd, output);
 	}
 
 	template <>
-	inline void unformat_arg<short>(const char* input, const char* inputEnd, short& output)
+	inline void unformat_arg<short>(const char* input, const char* inputEnd, short& output) noexcept
 	{
 		unformat_signed_int<short>(input, inputEnd, output);
 	}
 
 	template <>
-	inline void unformat_arg<int>(const char* input, const char* inputEnd, int& output)
+	inline void unformat_arg<int>(const char* input, const char* inputEnd, int& output) noexcept
 	{
 		unformat_signed_int<int>(input, inputEnd, output);
 	}
 
 	template <>
-	inline void unformat_arg<long>(const char* input, const char* inputEnd, long& output)
+	inline void unformat_arg<long>(const char* input, const char* inputEnd, long& output) noexcept
 	{
 		unformat_signed_int<long>(input, inputEnd, output);
 	}
 
 	template <>
-	inline void unformat_arg<long long>(const char* input, const char* inputEnd, long long& output)
+	inline void unformat_arg<long long>(const char* input, const char* inputEnd, long long& output) noexcept
 	{
 		unformat_signed_int<long long>(input, inputEnd, output);
 	}
 
 	template <>
-	inline void unformat_arg<unsigned short>(const char* input, const char* inputEnd, unsigned short& output)
+	inline void unformat_arg<unsigned short>(const char* input, const char* inputEnd, unsigned short& output) noexcept
 	{
 		unformat_unsigned_int<unsigned short>(input, inputEnd, output);
 	}
 
 	template <>
-	inline void unformat_arg<unsigned int>(const char* input, const char* inputEnd, unsigned int& output)
+	inline void unformat_arg<unsigned int>(const char* input, const char* inputEnd, unsigned int& output) noexcept
 	{
 		unformat_unsigned_int<unsigned int>(input, inputEnd, output);
 	}
 
 	template <>
-	inline void unformat_arg<unsigned long>(const char* input, const char* inputEnd, unsigned long& output)
+	inline void unformat_arg<unsigned long>(const char* input, const char* inputEnd, unsigned long& output) noexcept
 	{
 		unformat_unsigned_int<unsigned long>(input, inputEnd, output);
 	}
 
 	template <>
-	inline void unformat_arg<unsigned long long>(const char* input, const char* inputEnd, unsigned long long& output)
+	inline void unformat_arg<unsigned long long>(const char* input, const char* inputEnd, unsigned long long& output) noexcept
 	{
 		unformat_unsigned_int<unsigned long long>(input, inputEnd, output);
 	}
@@ -174,12 +174,12 @@ namespace ay
 	};
 
 	template <std::size_t N>
-	constexpr format make_format(const char(&str)[N])
+	constexpr format make_format(const char(&str)[N]) noexcept
 	{
 		return make_format_non_template(str, N);
 	}
 
-	constexpr format make_format_non_template(const char* str, std::size_t N)
+	constexpr format make_format_non_template(const char* str, std::size_t N) noexcept
 	{
 		format format;
 
@@ -206,7 +206,7 @@ namespace ay
 	}
 
 	// Empty function to end recursion, no more args to process
-	inline void unformat_internal(std::size_t inputPos, const char* input, const format& format)
+	inline void unformat_internal(std::size_t inputPos, const char* input, const format& format) noexcept
 	{
 	}
 
