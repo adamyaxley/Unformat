@@ -207,12 +207,12 @@ namespace ay
 	}
 
 	// Empty function to end recursion, no more args to process
-	inline void unformat_internal(std::size_t inputPos, const std::string& input, const format& format)
+	inline void unformat_internal(std::size_t inputPos, const char* input, const format& format)
 	{
 	}
 
 	template <typename T, typename... TRest>
-	void unformat_internal(std::size_t inputPos, const std::string& input, const format& format, T& first, TRest&... rest) noexcept
+	void unformat_internal(std::size_t inputPos, const char* input, const format& format, T& first, TRest&... rest) noexcept
 	{
 		const std::size_t argNo = format.count - sizeof...(rest) - 1;
 
@@ -243,7 +243,7 @@ namespace ay
 	// Then the following data is extracted:
 	//     name == "Harry" and age == 18
 	template <typename... Args>
-	void unformat(const std::string& input, const format& format, Args&... args) noexcept
+	void unformat(const char* input, const format& format, Args&... args) noexcept
 	{
 		unformat_internal(0, input, format, args...);
 	}
@@ -256,7 +256,7 @@ namespace ay
 	// Then the following data is extracted:
 	//     name == "Harry" and age == 18
 	template <typename... Args>
-	void unformat(const std::string& input, const std::string& format, Args&... args) noexcept
+	void unformat(const char* input, const std::string& format, Args&... args) noexcept
 	{
 		unformat_internal(0, input, make_format_non_template(format.c_str(), format.size()), args...);
 	}
