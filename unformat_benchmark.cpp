@@ -4,7 +4,8 @@
 #include <cstdio>
 #include "unformat.h"
 
-const std::string g_input = "Harry is 18 years old and weighs 67.8 kilograms";
+const char* g_input = "Harry is 18 years old and weighs 67.8 kilograms";
+const std::string g_inputString = g_input;
 
 #ifdef UNFORMAT_CPP17
 #include <string_view>
@@ -84,7 +85,7 @@ static void StdRegex(benchmark::State& state)
 	{
 		std::regex regex("([A-Za-z]+) is ([0-9]+) years old and weighs ([0-9\.]+) ([A-Za-z]+)");
 		std::smatch matches;
-		std::regex_search(g_input, matches, regex);
+		std::regex_search(g_inputString, matches, regex);
 
 		name = matches[1];
 		age = std::stoi(matches[2]);
@@ -107,7 +108,7 @@ static void StdScanf(benchmark::State& state)
 	char units[16];
 	for (auto _ : state)
 	{
-		std::sscanf(g_input.c_str(), "%s is %d years old and weighs %f %s", &name, &age, &weight, &units);
+		std::sscanf(g_input, "%s is %d years old and weighs %f %s", &name, &age, &weight, &units);
 		benchmark::DoNotOptimize(name);
 		benchmark::DoNotOptimize(age);
 		benchmark::DoNotOptimize(weight);

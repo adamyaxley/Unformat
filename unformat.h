@@ -14,7 +14,7 @@
 namespace
 {
 	template <typename T>
-	void unformat_signed_int(const char* input, const char* inputEnd, T& output)
+	void unformat_signed_int(const char* input, const char* inputEnd, T& output) noexcept
 	{
 		output = 0;
 		int dec = 1;
@@ -33,7 +33,7 @@ namespace
 	}
 
 	template <typename T>
-	void unformat_unsigned_int(const char* input, const char* inputEnd, T& output)
+	void unformat_unsigned_int(const char* input, const char* inputEnd, T& output) noexcept
 	{
 		output = 0;
 		int dec = 1;
@@ -47,7 +47,7 @@ namespace
 	}
 
 	template <typename T>
-	void unformat_real(const char* input, const char* inputEnd, T& output)
+	void unformat_real(const char* input, const char* inputEnd, T& output) noexcept
 	{
 		output = 0;
 		int dec = 1;
@@ -77,91 +77,90 @@ namespace ay
 	// Not defined on purpose for the general case. Note that you can define custom unformatters by defining new specialisations
 	// for this function.
 	template <typename T>
-	void unformat_arg(const char* input, const char* inputEnd, T& output);
+	void unformat_arg(const char* input, const char* inputEnd, T& output) noexcept;
 
 	template <>
-	inline void unformat_arg<char>(const char* input, const char* inputEnd, char& output)
+	inline void unformat_arg<char>(const char* input, const char* inputEnd, char& output) noexcept
 	{
 		output = input[0];
 	}
 
 	template <>
-	inline void unformat_arg<unsigned char>(const char* input, const char* inputEnd, unsigned char& output)
+	inline void unformat_arg<unsigned char>(const char* input, const char* inputEnd, unsigned char& output) noexcept
 	{
 		output = input[0];
 	}
 
 #ifdef UNFORMAT_CPP17
 	template <>
-	inline void unformat_arg<std::string_view>(const char* input, const char* inputEnd, std::string_view& output)
+	inline void unformat_arg<std::string_view>(const char* input, const char* inputEnd, std::string_view& output) noexcept
 	{
-		std::string_view newOutput(input, inputEnd - input);
-		std::swap(output, newOutput);
+		output = std::string_view(input, inputEnd - input);
 	}
 #endif
 
 	template <>
-	inline void unformat_arg<std::string>(const char* input, const char* inputEnd, std::string& output)
+	inline void unformat_arg<std::string>(const char* input, const char* inputEnd, std::string& output) noexcept
 	{
 		output.assign(input, inputEnd - input);
 	}
 
 	template <>
-	inline void unformat_arg<float>(const char* input, const char* inputEnd, float& output)
+	inline void unformat_arg<float>(const char* input, const char* inputEnd, float& output) noexcept
 	{
 		unformat_real<float>(input, inputEnd, output);
 	}
 
 	template <>
-	inline void unformat_arg<double>(const char* input, const char* inputEnd, double& output)
+	inline void unformat_arg<double>(const char* input, const char* inputEnd, double& output) noexcept
 	{
 		unformat_real<double>(input, inputEnd, output);
 	}
 
 	template <>
-	inline void unformat_arg<short>(const char* input, const char* inputEnd, short& output)
+	inline void unformat_arg<short>(const char* input, const char* inputEnd, short& output) noexcept
 	{
 		unformat_signed_int<short>(input, inputEnd, output);
 	}
 
 	template <>
-	inline void unformat_arg<int>(const char* input, const char* inputEnd, int& output)
+	inline void unformat_arg<int>(const char* input, const char* inputEnd, int& output) noexcept
 	{
 		unformat_signed_int<int>(input, inputEnd, output);
 	}
 
 	template <>
-	inline void unformat_arg<long>(const char* input, const char* inputEnd, long& output)
+	inline void unformat_arg<long>(const char* input, const char* inputEnd, long& output) noexcept
 	{
 		unformat_signed_int<long>(input, inputEnd, output);
 	}
 
 	template <>
-	inline void unformat_arg<long long>(const char* input, const char* inputEnd, long long& output)
+	inline void unformat_arg<long long>(const char* input, const char* inputEnd, long long& output) noexcept
 	{
 		unformat_signed_int<long long>(input, inputEnd, output);
 	}
 
 	template <>
-	inline void unformat_arg<unsigned short>(const char* input, const char* inputEnd, unsigned short& output)
+	inline void unformat_arg<unsigned short>(const char* input, const char* inputEnd, unsigned short& output) noexcept
 	{
 		unformat_unsigned_int<unsigned short>(input, inputEnd, output);
 	}
 
 	template <>
-	inline void unformat_arg<unsigned int>(const char* input, const char* inputEnd, unsigned int& output)
+	inline void unformat_arg<unsigned int>(const char* input, const char* inputEnd, unsigned int& output) noexcept
 	{
 		unformat_unsigned_int<unsigned int>(input, inputEnd, output);
 	}
 
 	template <>
-	inline void unformat_arg<unsigned long>(const char* input, const char* inputEnd, unsigned long& output)
+	inline void unformat_arg<unsigned long>(const char* input, const char* inputEnd, unsigned long& output) noexcept
 	{
 		unformat_unsigned_int<unsigned long>(input, inputEnd, output);
 	}
 
 	template <>
-	inline void unformat_arg<unsigned long long>(const char* input, const char* inputEnd, unsigned long long& output)
+	inline void unformat_arg<unsigned long long>(const char* input, const char* inputEnd, unsigned long long& output) noexcept
 	{
 		unformat_unsigned_int<unsigned long long>(input, inputEnd, output);
 	}
@@ -169,33 +168,37 @@ namespace ay
 	struct format
 	{
 		static constexpr std::size_t MAX_COUNT{ 16 };
-		std::size_t braces[MAX_COUNT]{};
+		std::size_t offsets[MAX_COUNT]{};
 		char endChar[MAX_COUNT]{};
 		std::size_t count{ 0 };
 	};
 
 	template <std::size_t N>
-	constexpr format make_format(const char(&str)[N])
+	constexpr format make_format(const char(&str)[N]) noexcept
 	{
 		return make_format_non_template(str, N);
 	}
 
-	constexpr format make_format_non_template(const char* str, std::size_t N)
+	constexpr format make_format_non_template(const char* str, std::size_t N) noexcept
 	{
 		format format;
 
-		for (std::size_t i = 0; i < N - 1; i++)
+		std::size_t from = 0;
+		for (std::size_t to = 0; to < N - 1; to++)
 		{
-			if (str[i] == '{' && str[i + 1] == '}')
+			if (str[to] == '{' && str[to + 1] == '}')
 			{
 				if (format.count >= format::MAX_COUNT)
 				{
 					// Stops compilation in a constexpr context
 					throw std::exception("Max number of {} has been exceeded.");
 				}
-				format.braces[format.count] = i;
-				format.endChar[format.count] = str[i + 2]; // May be '\0' which is fine
+				format.offsets[format.count] = to - from;
+				format.endChar[format.count] = str[to + 2]; // May be '\0' which is fine
 				++format.count;
+				// Advance markers
+				from = to + 2;
+				to = from;
 			}
 		}
 
@@ -203,20 +206,20 @@ namespace ay
 	}
 
 	// Empty function to end recursion, no more args to process
-	inline void unformat_internal(std::size_t inputPos, std::size_t formatPos, const std::string& input, const format& format)
+	inline void unformat_internal(std::size_t inputPos, const char* input, const format& format) noexcept
 	{
 	}
 
 	template <typename T, typename... TRest>
-	void unformat_internal(std::size_t inputPos, std::size_t formatPos, const std::string& input, const format& format, T& first, TRest&... rest) noexcept
+	void unformat_internal(std::size_t inputPos, const char* input, const format& format, T& first, TRest&... rest) noexcept
 	{
 		const std::size_t argNo = format.count - sizeof...(rest) - 1;
 
 		// Get the location of the first brace
-		const auto formatStart = format.braces[argNo];
+		const auto offset = format.offsets[argNo];
 
 		// Find input string
-		inputPos += formatStart - formatPos;
+		inputPos += offset;
 		auto inputEnd = inputPos + 1;
 		while (input[inputEnd] != format.endChar[argNo])
 		{
@@ -227,7 +230,7 @@ namespace ay
 		unformat_arg(&input[inputPos], &input[inputEnd], first);
 
 		// Process TRest
-		unformat_internal(inputEnd, formatStart + 2, input, format, rest...);
+		unformat_internal(inputEnd, input, format, rest...);
 	}
 
 	// Parses and extracts data from 'input' given a braced styled "{}" 'format' into 'args...'
@@ -239,9 +242,9 @@ namespace ay
 	// Then the following data is extracted:
 	//     name == "Harry" and age == 18
 	template <typename... Args>
-	void unformat(const std::string& input, const format& format, Args&... args) noexcept
+	void unformat(const char* input, const format& format, Args&... args) noexcept
 	{
-		unformat_internal(0, 0, input, format, args...);
+		unformat_internal(0, input, format, args...);
 	}
 
 	// Parses and extracts data from 'input' given a braced styled "{}" 'format' into 'args...'
@@ -252,8 +255,8 @@ namespace ay
 	// Then the following data is extracted:
 	//     name == "Harry" and age == 18
 	template <typename... Args>
-	void unformat(const std::string& input, const std::string& format, Args&... args) noexcept
+	void unformat(const char* input, const std::string& format, Args&... args) noexcept
 	{
-		unformat_internal(0, 0, input, make_format_non_template(format.c_str(), format.size()), args...);
+		unformat_internal(0, input, make_format_non_template(format.c_str(), format.size()), args...);
 	}
 }
