@@ -95,8 +95,7 @@ namespace ay
 	template <>
 	inline void unformat_arg<std::string_view>(const char* input, const char* inputEnd, std::string_view& output)
 	{
-		std::string_view newOutput(input, inputEnd - input);
-		std::swap(output, newOutput);
+		output = std::string_view(input, inputEnd - input);
 	}
 #endif
 
