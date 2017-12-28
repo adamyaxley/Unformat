@@ -169,7 +169,7 @@ namespace ay
 	struct format
 	{
 		static constexpr std::size_t MAX_COUNT{ 16 };
-		std::size_t braces[MAX_COUNT]{};
+		std::size_t offsets[MAX_COUNT]{};
 		char endChar[MAX_COUNT]{};
 		std::size_t count{ 0 };
 	};
@@ -184,18 +184,22 @@ namespace ay
 	{
 		format format;
 
-		for (std::size_t i = 0; i < N - 1; i++)
+		std::size_t from = 0;
+		for (std::size_t to = 0; to < N - 1; to++)
 		{
-			if (str[i] == '{' && str[i + 1] == '}')
+			if (str[to] == '{' && str[to + 1] == '}')
 			{
 				if (format.count >= format::MAX_COUNT)
 				{
 					// Stops compilation in a constexpr context
 					throw std::exception("Max number of {} has been exceeded.");
 				}
-				format.braces[format.count] = i;
-				format.endChar[format.count] = str[i + 2]; // May be '\0' which is fine
+				format.offsets[format.count] = to - from;
+				format.endChar[format.count] = str[to + 2]; // May be '\0' which is fine
 				++format.count;
+				// Advance markers
+				from = to + 2;
+				to = from;
 			}
 		}
 
@@ -203,20 +207,20 @@ namespace ay
 	}
 
 	// Empty function to end recursion, no more args to process
-	inline void unformat_internal(std::size_t inputPos, std::size_t formatPos, const std::string& input, const format& format)
+	inline void unformat_internal(std::size_t inputPos, const std::string& input, const format& format)
 	{
 	}
 
 	template <typename T, typename... TRest>
-	void unformat_internal(std::size_t inputPos, std::size_t formatPos, const std::string& input, const format& format, T& first, TRest&... rest) noexcept
+	void unformat_internal(std::size_t inputPos, const std::string& input, const format& format, T& first, TRest&... rest) noexcept
 	{
 		const std::size_t argNo = format.count - sizeof...(rest) - 1;
 
 		// Get the location of the first brace
-		const auto formatStart = format.braces[argNo];
+		const auto offset = format.offsets[argNo];
 
 		// Find input string
-		inputPos += formatStart - formatPos;
+		inputPos += offset;
 		auto inputEnd = inputPos + 1;
 		while (input[inputEnd] != format.endChar[argNo])
 		{
@@ -227,7 +231,7 @@ namespace ay
 		unformat_arg(&input[inputPos], &input[inputEnd], first);
 
 		// Process TRest
-		unformat_internal(inputEnd, formatStart + 2, input, format, rest...);
+		unformat_internal(inputEnd, input, format, rest...);
 	}
 
 	// Parses and extracts data from 'input' given a braced styled "{}" 'format' into 'args...'
@@ -241,7 +245,7 @@ namespace ay
 	template <typename... Args>
 	void unformat(const std::string& input, const format& format, Args&... args) noexcept
 	{
-		unformat_internal(0, 0, input, format, args...);
+		unformat_internal(0, input, format, args...);
 	}
 
 	// Parses and extracts data from 'input' given a braced styled "{}" 'format' into 'args...'
@@ -254,6 +258,6 @@ namespace ay
 	template <typename... Args>
 	void unformat(const std::string& input, const std::string& format, Args&... args) noexcept
 	{
-		unformat_internal(0, 0, input, make_format_non_template(format.c_str(), format.size()), args...);
+		unformat_internal(0, input, make_format_non_template(format.c_str(), format.size()), args...);
 	}
 }
