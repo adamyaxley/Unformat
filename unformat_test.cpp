@@ -74,10 +74,10 @@ namespace
 			ay::unformat(stream.str().c_str(), format, output);
 			T streamOutput;
 			stream >> streamOutput;
-			ASSERT_EQ(streamOutput, output) << "Test that unformat and std::stringstream are equal at default precision";
+			ASSERT_EQ(streamOutput, output) << i << ": Test that unformat and std::stringstream are equal at default precision";
 			
 			ay::unformat(std::to_string(input).c_str(), format, output);
-			ASSERT_EQ(input, output) << "Test that unformat is the exact lossless opposite of std::to_string";
+			ASSERT_EQ(input, output) << i << ": Test that unformat is the exact lossless opposite of std::to_string";
 		}
 	}
 }
