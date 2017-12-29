@@ -259,7 +259,7 @@ namespace ay
 
 		// Find input string
 		inputPos += offset;
-		auto inputEnd = inputPos + 1;
+		auto inputEnd = inputPos;
 		while (input[inputEnd] != format.endChar[argNo])
 		{
 			++inputEnd;

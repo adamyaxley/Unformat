@@ -4,6 +4,33 @@
 #include <random>
 #include <limits>
 
+TEST(Unformat, EmptyString)
+{
+	{
+		std::string output("NotEmpty");
+		ay::unformat("", "{}", output);
+		ASSERT_EQ("", output);
+	}
+
+	{
+		std::string output("NotEmpty");
+		ay::unformat("   ", "   {}", output);
+		ASSERT_EQ("", output);
+	}
+
+	{
+		std::string output("NotEmpty");
+		ay::unformat("   ", "{}   ", output);
+		ASSERT_EQ("", output);
+	}
+
+	{
+		std::string output("NotEmpty");
+		ay::unformat("      ", "   {}   ", output);
+		ASSERT_EQ("", output);
+	}
+}
+
 TEST(Unformat, Basic)
 {
 	// Basic test to extract a single integer
