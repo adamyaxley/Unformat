@@ -48,45 +48,37 @@ namespace
 	template <typename T>
 	void unformat_real(const char* input, const char* inputEnd, T& output) noexcept
 	{
-		// Get sign
-		bool negative = *input == '-';
-		if (negative)
+		long double f = 0;
+
+		// Check for negative
+		if (*input == '-')
 		{
+			f = -f;
 			++input;
 		}
 
-		// Calculate f
-		constexpr auto max = 1000000000000000000llu;
-		long long unsigned f = 0;
-		int e = 0;
+		// Parse units
 		while (*input != '.' && input != inputEnd && *input != 'e')
 		{
-			if (f < max)
-			{
-				f *= 10;
-				f += (*input - '0');
-			}
-			else
-			{
-				// Cannot store any more digits in units
-				++e;
-			}
+			f *= 10;
+			f += (*input - '0');
 			++input;
 		}
+
+		// Parse decimal
 		if (*input == '.')
 		{
 			++input;
+			long double decimal = 1.0L;
 			while (input != inputEnd && *input != 'e')
 			{
-				if (f < max)
-				{
-					f *= 10;
-					f += (*input - '0');
-					--e;
-				}
+				decimal *= 0.1L;
+				f += (*input - '0') * decimal;
 				++input;
 			}
 		}
+
+		// Parse exponent
 		if (*input == 'e')
 		{
 			++input;
@@ -94,20 +86,12 @@ namespace
 			{
 				++input; // Skip + as unformat_signed_int can't handle it
 			}
-			int additionalExponent;
-			unformat_signed_int(input, inputEnd, additionalExponent);
-			e += additionalExponent;
+			int e;
+			unformat_signed_int(input, inputEnd, e);
+			f *= pow(10L, e);
 		}
 
-		// Create result
-		long double outputCalc;
-		outputCalc = static_cast<long double>(f);
-		outputCalc *= pow(10, e);
-		if (negative)
-		{
-			outputCalc = -outputCalc;
-		}
-		output = static_cast<T>(outputCalc);
+		output = static_cast<T>(f);
 	}
 }
 
