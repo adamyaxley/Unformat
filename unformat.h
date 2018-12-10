@@ -202,7 +202,7 @@ namespace ay
 		return make_format_non_template(str, N);
 	}
 
-	constexpr format make_format_non_template(const char* str, std::size_t N) noexcept
+	constexpr format make_format_non_template(const char* str, std::size_t N)
 	{
 		format format;
 
