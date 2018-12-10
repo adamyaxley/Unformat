@@ -24,6 +24,14 @@ namespace
 			++input;
 		}
 
+#ifndef UNFORMAT_DISABLE_PLUS_SIGN
+		// Ignore plus
+		if (*input == '+')
+		{
+			++input;
+		}
+#endif
+
 		while (input != inputEnd)
 		{
 			output *= 10;
@@ -56,6 +64,14 @@ namespace
 			f = -f;
 			++input;
 		}
+
+#ifndef UNFORMAT_DISABLE_PLUS_SIGN
+		// Ignore plus
+		if (*input == '+')
+		{
+			++input;
+		}
+#endif
 
 		// Parse units
 		while (*input != '.' && input != inputEnd && *input != 'e')
