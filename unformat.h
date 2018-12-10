@@ -118,6 +118,28 @@ namespace ay
 	template <typename T>
 	void unformat_arg(const char* input, const char* inputEnd, T& output) noexcept;
 
+	template <typename T>
+	T unformat_arg(const char* input, const char* inputEnd) noexcept
+	{
+		T output;
+		unformat_arg(input, inputEnd, output);
+		return output;
+	}
+
+#ifdef UNFORMAT_CPP17
+	template <typename T>
+	T unformat_arg(std::string_view input) noexcept
+	{
+		return unformat_arg<T>(input.data(), input.data() + input.length());
+	}
+#endif
+
+	template <typename T>
+	T unformat_arg(std::string input) noexcept
+	{
+		return unformat_arg<T>(input.c_str(), input.c_str() + input.length());
+	}
+
 	template <>
 	inline void unformat_arg<char>(const char* input, const char* inputEnd, char& output) noexcept
 	{
