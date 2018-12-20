@@ -311,6 +311,20 @@ namespace ay
 	// Parses and extracts data from 'input' given a braced styled "{}" 'format' into 'args...'
 	// For example:
 	//     std::string name, int age;
+	//     constexpr auto format = make_format("{} is {} years old.");
+	//     unformat("Harry is 18 years old.", format, name, age);
+	//
+	// Then the following data is extracted:
+	//     name == "Harry" and age == 18
+	template <typename... Args>
+	void unformat(const std::string& input, const format& format, Args&... args) noexcept
+	{
+		unformat_internal(0, input.c_str(), format, args...);
+	}
+
+	// Parses and extracts data from 'input' given a braced styled "{}" 'format' into 'args...'
+	// For example:
+	//     std::string name, int age;
 	//     unformat("Harry is 18 years old.", "{} is {} years old.", name, age);
 	//
 	// Then the following data is extracted:
