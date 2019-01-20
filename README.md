@@ -1,4 +1,4 @@
-Warning: this library is brand new and therefore untested and crawling with bugs.
+**[Source available on GitHub](https://github.com/adamyaxley/Unformat)**
 
 # Unformat
 Parsing and extraction of original data from brace style "{}" formatted strings. It basically _unformats_ what you thought was formatted for good.
