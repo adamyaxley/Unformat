@@ -226,8 +226,25 @@ namespace ay
 		unformat_unsigned_int<unsigned long long>(input, inputEnd, output);
 	}
 
+	struct format;
+
+	constexpr format make_format_non_template(const char* str, std::size_t N);
+
 	struct format
 	{
+		constexpr format() {}
+
+		template <std::size_t N>
+		constexpr format(const char(&str)[N])
+		{
+			*this = make_format_non_template(str, N);
+		}
+
+		format(const char* str)
+		{
+			*this = make_format_non_template(str, std::strlen(str));
+		}
+
 		static constexpr std::size_t MAX_COUNT{ 16 };
 		std::size_t offsets[MAX_COUNT]{};
 		char endChar[MAX_COUNT]{};
@@ -320,18 +337,5 @@ namespace ay
 	void unformat(const std::string& input, const format& format, Args&... args) noexcept
 	{
 		unformat_internal(0, input.c_str(), format, args...);
-	}
-
-	// Parses and extracts data from 'input' given a braced styled "{}" 'format' into 'args...'
-	// For example:
-	//     std::string name, int age;
-	//     unformat("Harry is 18 years old.", "{} is {} years old.", name, age);
-	//
-	// Then the following data is extracted:
-	//     name == "Harry" and age == 18
-	template <typename... Args>
-	void unformat(const char* input, const std::string& format, Args&... args) noexcept
-	{
-		unformat_internal(0, input, make_format_non_template(format.c_str(), format.size()), args...);
 	}
 }

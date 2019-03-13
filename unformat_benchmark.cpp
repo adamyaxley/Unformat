@@ -32,6 +32,25 @@ static void Unformat(benchmark::State& state)
 
 BENCHMARK(Unformat);
 
+static void Unformat_ConstChar(benchmark::State& state)
+{
+	string_type name;
+	int age;
+	float weight;
+	string_type units;
+	for (auto _ : state)
+	{
+		const char* format = "{} is {} years old and weighs {} {}";
+		ay::unformat(g_input, format, name, age, weight, units);
+		benchmark::DoNotOptimize(name);
+		benchmark::DoNotOptimize(age);
+		benchmark::DoNotOptimize(weight);
+		benchmark::DoNotOptimize(units);
+	}
+}
+
+BENCHMARK(Unformat_ConstChar);
+
 static void Unformat_ConstexprMakeFormat(benchmark::State& state)
 {
 	string_type name;
@@ -83,7 +102,7 @@ static void StdRegex(benchmark::State& state)
 	std::string units;
 	for (auto _ : state)
 	{
-		std::regex regex("([A-Za-z]+) is ([0-9]+) years old and weighs ([0-9\.]+) ([A-Za-z]+)");
+		std::regex regex("([A-Za-z]+) is ([0-9]+) years old and weighs ([0-9\\.]+) ([A-Za-z]+)");
 		std::smatch matches;
 		std::regex_search(g_inputString, matches, regex);
 

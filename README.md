@@ -35,13 +35,14 @@ Pull requests are very welcome. You may also create Issues and I will have a loo
 Unformat is super awesome back to the future style lightning fast compared to traditional parsing methods. Below is the output from Google Benchmark on unformat_benchmark.cpp. Great Scott!
 ```
 Run on (16 X 2993 MHz CPU s)
-12/28/17 19:14:29
+03/13/19 18:10:57
 --------------------------------------------------------------------
 Benchmark                             Time           CPU Iterations
 --------------------------------------------------------------------
-Unformat                            150 ns        150 ns    4480000
-Unformat_ConstexprMakeFormat         34 ns         33 ns   18666667
-StdStringStream                    1427 ns       1444 ns     497778
-StdRegex                          11207 ns      11230 ns      64000
-StdScanf                           2369 ns       2354 ns     298667
+Unformat                             72 ns         71 ns    8960000
+Unformat_ConstChar                   69 ns         70 ns    8960000
+Unformat_ConstexprMakeFormat         36 ns         35 ns   19478261
+StdStringStream                     844 ns        854 ns     896000
+StdRegex                           9975 ns      10010 ns      64000
+StdScanf                           1716 ns       1726 ns     407273
 ```
