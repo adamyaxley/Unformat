@@ -11,6 +11,20 @@
 #define UNFORMAT_FORCEINLINE inline
 #endif
 
+#ifdef _MSC_VER
+#define UNFORMAT_NOINLINE __declspec(noinline)
+#elif defined(__GNUC__) || defined(__clang__)
+#define UNFORMAT_NOINLINE __attribute__((noinline))
+#else
+#define UNFORMAT_NOINLINE
+#endif
+
+#ifdef _MSC_VER
+#define UNFORMAT_RESTRICT __restrict
+#else
+#define UNFORMAT_RESTRICT __restrict__
+#endif
+
 #include <string>
 #include <cstdlib>
 #include <cstring>
@@ -60,6 +74,13 @@ namespace
 		}
 	}
 
+	// Lookup table for negative powers of 10, used to convert integer mantissa
+	// to floating point with a single multiply at the end
+	static const double unformat_pow10_neg[] = {
+		1.0, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9,
+		1e-10, 1e-11, 1e-12, 1e-13, 1e-14, 1e-15, 1e-16, 1e-17, 1e-18, 1e-19, 1e-20
+	};
+
 	template <typename T>
 	void unformat_real(const char* input, const char* inputEnd, T& output) noexcept
 	{
@@ -79,9 +100,6 @@ namespace
 			return;
 		}
 
-		// Fast manual parser for simple fixed-point numbers (e.g. "67.8")
-		long double f = 0;
-
 		// Check for negative
 		if (*input == '-')
 		{
@@ -97,24 +115,25 @@ namespace
 		}
 #endif
 
-		// Parse integer part
-		while (*input != '.' && input != inputEnd && *input != 'e' && *input != 'E')
+		// Parse all digits as integer mantissa (fast integer multiply+add)
+		// Uses digit-range check: single comparison stops at '.', 'e', 'E', '\0', or any non-digit
+		unsigned long long mantissa = 0;
+		int decimal_digits = 0;
+
+		// Integer part
+		for (unsigned d; (d = static_cast<unsigned>(*input - '0')) <= 9u; ++input)
 		{
-			f *= 10;
-			f += (*input - '0');
-			++input;
+			mantissa = mantissa * 10 + d;
 		}
 
-		// Parse decimal
+		// Decimal part
 		if (*input == '.')
 		{
 			++input;
-			long double decimal = 1.0L;
-			while (input != inputEnd && *input != 'e' && *input != 'E')
+			for (unsigned d; (d = static_cast<unsigned>(*input - '0')) <= 9u; ++input)
 			{
-				decimal *= 0.1L;
-				f += (*input - '0') * decimal;
-				++input;
+				mantissa = mantissa * 10 + d;
+				++decimal_digits;
 			}
 		}
 
@@ -129,12 +148,15 @@ namespace
 			return;
 		}
 
+		// Single FP conversion: cast mantissa to double, scale by power of 10
+		double result = static_cast<double>(mantissa) * unformat_pow10_neg[decimal_digits];
+
 		if (negative)
 		{
-			f = -f;
+			result = -result;
 		}
 
-		output = static_cast<T>(f);
+		output = static_cast<T>(result);
 	}
 
 	// --- Combined scan+parse helpers for numeric types ---
@@ -142,9 +164,9 @@ namespace
 	// eliminating the redundant scan loop in unformat_internal.
 
 	template <typename T>
-	UNFORMAT_FORCEINLINE const char* unformat_signed_int_scan(const char* input, char endCh, T& output) noexcept
+	UNFORMAT_FORCEINLINE const char* unformat_signed_int_scan(const char* UNFORMAT_RESTRICT input, T& output) noexcept
 	{
-		output = 0;
+		T val = 0;
 		int sign = 1;
 		if (*input == '-')
 		{
@@ -159,35 +181,47 @@ namespace
 		}
 #endif
 
-		while (*input != endCh)
+		// Digit-range check: stops at any non-digit (including endCh)
+		for (unsigned d; (d = static_cast<unsigned>(*input - '0')) <= 9u; ++input)
 		{
-			output *= 10;
-			output += (*input - '0');
-			++input;
+			val = val * 10 + static_cast<T>(d);
 		}
-		output *= sign;
+		output = val * sign;
 		return input;
 	}
 
 	template <typename T>
-	UNFORMAT_FORCEINLINE const char* unformat_unsigned_int_scan(const char* input, char endCh, T& output) noexcept
+	UNFORMAT_FORCEINLINE const char* unformat_unsigned_int_scan(const char* UNFORMAT_RESTRICT input, T& output) noexcept
 	{
-		output = 0;
-		while (*input != endCh)
+		T val = 0;
+		// Digit-range check: stops at any non-digit (including endCh)
+		for (unsigned d; (d = static_cast<unsigned>(*input - '0')) <= 9u; ++input)
 		{
-			output *= 10;
-			output += (*input - '0');
-			++input;
+			val = val * 10 + static_cast<T>(d);
 		}
+		output = val;
 		return input;
 	}
 
+	// Cold path: strtod fallback for scientific notation or very long float inputs
 	template <typename T>
-	const char* unformat_real_scan(const char* input, char endCh, T& output) noexcept
+	UNFORMAT_NOINLINE const char* unformat_real_scan_strtod(const char* inputStart, const char* inputCurrent, char endCh, T& output) noexcept
+	{
+		const char* end = inputCurrent;
+		while (*end != endCh) ++end;
+		auto len = static_cast<std::size_t>(end - inputStart);
+		char buf[400];
+		auto n = len < sizeof(buf) - 1 ? len : sizeof(buf) - 1;
+		for (std::size_t i = 0; i < n; ++i) buf[i] = inputStart[i];
+		buf[n] = '\0';
+		output = static_cast<T>(std::strtod(buf, nullptr));
+		return end;
+	}
+
+	template <typename T>
+	UNFORMAT_FORCEINLINE const char* unformat_real_scan(const char* UNFORMAT_RESTRICT input, char endCh, T& output) noexcept
 	{
 		const char* inputStart = input;
-
-		long double f = 0;
 		bool negative = false;
 
 		if (*input == '-')
@@ -203,60 +237,44 @@ namespace
 		}
 #endif
 
-		// Parse integer part (scan for '.', endCh, or 'e'/'E')
-		while (*input != '.' && *input != endCh && *input != 'e' && *input != 'E')
+		// Parse all digits as integer mantissa (fast integer multiply+add)
+		unsigned long long mantissa = 0;
+		int decimal_digits = 0;
+		const char* digitStart = input;
+
+		// Integer part — single digit-range check replaces 4 comparisons
+		for (unsigned d; (d = static_cast<unsigned>(*input - '0')) <= 9u; ++input)
 		{
-			f *= 10;
-			f += (*input - '0');
-			++input;
+			mantissa = mantissa * 10 + d;
 		}
 
-		// For very long inputs, fall back to strtod
-		if (static_cast<std::size_t>(input - inputStart) > 20)
-		{
-			const char* end = input;
-			while (*end != endCh) ++end;
-			auto len = static_cast<std::size_t>(end - inputStart);
-			char buf[400];
-			auto n = len < sizeof(buf) - 1 ? len : sizeof(buf) - 1;
-			for (std::size_t i = 0; i < n; ++i) buf[i] = inputStart[i];
-			buf[n] = '\0';
-			output = static_cast<T>(std::strtod(buf, nullptr));
-			return end;
-		}
-
-		// Parse decimal (scan for endCh or 'e'/'E')
+		// Decimal part
 		if (*input == '.')
 		{
 			++input;
-			long double decimal = 1.0L;
-			while (*input != endCh && *input != 'e' && *input != 'E')
+			for (unsigned d; (d = static_cast<unsigned>(*input - '0')) <= 9u; ++input)
 			{
-				decimal *= 0.1L;
-				f += (*input - '0') * decimal;
-				++input;
+				mantissa = mantissa * 10 + d;
+				++decimal_digits;
 			}
 		}
 
-		// Scientific notation fallback
-		if (*input == 'e' || *input == 'E')
+		// Scientific notation or very long input (>18 total digits overflows ULL): cold path fallback
+		if (*input == 'e' || *input == 'E' ||
+			static_cast<int>(input - digitStart) - (decimal_digits > 0) > 18)
 		{
-			const char* end = input;
-			while (*end != endCh) ++end;
-			auto len = static_cast<std::size_t>(end - inputStart);
-			char buf[24];
-			for (std::size_t i = 0; i < len; ++i) buf[i] = inputStart[i];
-			buf[len] = '\0';
-			output = static_cast<T>(std::strtod(buf, nullptr));
-			return end;
+			return unformat_real_scan_strtod(inputStart, input, endCh, output);
 		}
+
+		// Single FP conversion: cast mantissa to double, scale by power of 10
+		double result = static_cast<double>(mantissa) * unformat_pow10_neg[decimal_digits];
 
 		if (negative)
 		{
-			f = -f;
+			result = -result;
 		}
 
-		output = static_cast<T>(f);
+		output = static_cast<T>(result);
 		return input;
 	}
 }
@@ -383,11 +401,7 @@ namespace ay
 	template <typename T>
 	UNFORMAT_FORCEINLINE const char* unformat_arg_scan(const char* input, char endCh, T& output) noexcept
 	{
-		const char* end = input;
-		while (*end != endCh)
-		{
-			++end;
-		}
+		const char* end = std::strchr(input, endCh);
 		unformat_arg(input, end, output);
 		return end;
 	}
@@ -396,25 +410,21 @@ namespace ay
 	UNFORMAT_FORCEINLINE const char* unformat_arg_scan<char>(const char* input, char endCh, char& output) noexcept
 	{
 		output = input[0];
-		const char* end = input;
-		while (*end != endCh) ++end;
-		return end;
+		return std::strchr(input, endCh);
 	}
 
 	template <>
 	UNFORMAT_FORCEINLINE const char* unformat_arg_scan<unsigned char>(const char* input, char endCh, unsigned char& output) noexcept
 	{
 		output = input[0];
-		const char* end = input;
-		while (*end != endCh) ++end;
-		return end;
+		return std::strchr(input, endCh);
 	}
 
 #ifdef UNFORMAT_CPP17
 	template <>
 	UNFORMAT_FORCEINLINE const char* unformat_arg_scan<std::string_view>(const char* input, char endCh, std::string_view& output) noexcept
 	{
-		const char* end = input;
+		const char* UNFORMAT_RESTRICT end = input;
 		while (*end != endCh)
 		{
 			++end;
@@ -427,7 +437,7 @@ namespace ay
 	template <>
 	UNFORMAT_FORCEINLINE const char* unformat_arg_scan<std::string>(const char* input, char endCh, std::string& output) noexcept
 	{
-		const char* end = input;
+		const char* UNFORMAT_RESTRICT end = input;
 		while (*end != endCh)
 		{
 			++end;
@@ -440,50 +450,50 @@ namespace ay
 	template <>
 	UNFORMAT_FORCEINLINE const char* unformat_arg_scan<short>(const char* input, char endCh, short& output) noexcept
 	{
-		return unformat_signed_int_scan(input, endCh, output);
+		return unformat_signed_int_scan(input, output);
 	}
 
 	template <>
 	UNFORMAT_FORCEINLINE const char* unformat_arg_scan<int>(const char* input, char endCh, int& output) noexcept
 	{
-		return unformat_signed_int_scan(input, endCh, output);
+		return unformat_signed_int_scan(input, output);
 	}
 
 	template <>
 	UNFORMAT_FORCEINLINE const char* unformat_arg_scan<long>(const char* input, char endCh, long& output) noexcept
 	{
-		return unformat_signed_int_scan(input, endCh, output);
+		return unformat_signed_int_scan(input, output);
 	}
 
 	template <>
 	UNFORMAT_FORCEINLINE const char* unformat_arg_scan<long long>(const char* input, char endCh, long long& output) noexcept
 	{
-		return unformat_signed_int_scan(input, endCh, output);
+		return unformat_signed_int_scan(input, output);
 	}
 
 	// Unsigned integer types: combined scan+parse in one loop
 	template <>
 	UNFORMAT_FORCEINLINE const char* unformat_arg_scan<unsigned short>(const char* input, char endCh, unsigned short& output) noexcept
 	{
-		return unformat_unsigned_int_scan(input, endCh, output);
+		return unformat_unsigned_int_scan(input, output);
 	}
 
 	template <>
 	UNFORMAT_FORCEINLINE const char* unformat_arg_scan<unsigned int>(const char* input, char endCh, unsigned int& output) noexcept
 	{
-		return unformat_unsigned_int_scan(input, endCh, output);
+		return unformat_unsigned_int_scan(input, output);
 	}
 
 	template <>
 	UNFORMAT_FORCEINLINE const char* unformat_arg_scan<unsigned long>(const char* input, char endCh, unsigned long& output) noexcept
 	{
-		return unformat_unsigned_int_scan(input, endCh, output);
+		return unformat_unsigned_int_scan(input, output);
 	}
 
 	template <>
 	UNFORMAT_FORCEINLINE const char* unformat_arg_scan<unsigned long long>(const char* input, char endCh, unsigned long long& output) noexcept
 	{
-		return unformat_unsigned_int_scan(input, endCh, output);
+		return unformat_unsigned_int_scan(input, output);
 	}
 
 	// Float/double: combined scan+parse
