@@ -3,6 +3,7 @@
 #include "gtest/gtest.h"
 #include <random>
 #include <limits>
+#include <cmath>
 
 TEST(Unformat, EmptyString)
 {
@@ -66,6 +67,129 @@ TEST(Unformat, ThreeVars)
 	ASSERT_EQ(std::string("gpmvdo"), name);
 	ASSERT_EQ(std::string("jjixrr, zacrh, smylfq, fdvtn"), supporting);
 	ASSERT_EQ(78, weight);
+}
+
+TEST(Unformat, TightPlaceholdersWithDelimiter)
+{
+	std::string first;
+	std::string second;
+	ay::unformat("ab|cd", "{}|{}", first, second);
+	ASSERT_EQ(std::string("ab"), first);
+	ASSERT_EQ(std::string("cd"), second);
+}
+
+TEST(Unformat, EmptyMiddleCapture)
+{
+	std::string left;
+	std::string middle;
+	std::string right;
+	ay::unformat("left||right", "{}|{}|{}", left, middle, right);
+	ASSERT_EQ(std::string("left"), left);
+	ASSERT_EQ(std::string(""), middle);
+	ASSERT_EQ(std::string("right"), right);
+}
+
+TEST(Unformat, StringInputOverload)
+{
+	std::string input("name=alice,age=42");
+	std::string name;
+	int age = 0;
+	constexpr auto format = ay::make_format("name={},age={}");
+	ay::unformat(input, format, name, age);
+	ASSERT_EQ(std::string("alice"), name);
+	ASSERT_EQ(42, age);
+}
+
+TEST(Unformat, ConstCharFormatOverload)
+{
+	std::string left;
+	std::string right;
+	ay::format runtimeFormat("{}:{}");
+	ay::unformat("abc:def", runtimeFormat, left, right);
+	ASSERT_EQ(std::string("abc"), left);
+	ASSERT_EQ(std::string("def"), right);
+}
+
+TEST(Unformat, CharSpecialization)
+{
+	char output = '\0';
+	ay::unformat("Q", "{}", output);
+	ASSERT_EQ('Q', output);
+}
+
+TEST(Unformat, UnsignedCharSpecialization)
+{
+	unsigned char output = 0;
+	ay::unformat("R", "{}", output);
+	ASSERT_EQ(static_cast<unsigned char>('R'), output);
+}
+
+TEST(Unformat, SignedIntegerSigns)
+{
+	int negative = 0;
+	int positive = 0;
+	short withLeadingZero = 0;
+	ay::unformat("-12", "{}", negative);
+	ay::unformat("+19", "{}", positive);
+	ay::unformat("007", "{}", withLeadingZero);
+	ASSERT_EQ(-12, negative);
+	ASSERT_EQ(19, positive);
+	ASSERT_EQ(7, withLeadingZero);
+}
+
+TEST(Unformat, UnsignedIntegerLeadingZeros)
+{
+	unsigned int value = 0;
+	ay::unformat("000123", "{}", value);
+	ASSERT_EQ(123u, value);
+}
+
+TEST(Unformat, FloatFixedPoint)
+{
+	float value = 0.0f;
+	ay::unformat("67.875", "{}", value);
+	ASSERT_FLOAT_EQ(67.875f, value);
+}
+
+TEST(Unformat, FloatNegativeFixedPoint)
+{
+	float value = 0.0f;
+	ay::unformat("-12.5", "{}", value);
+	ASSERT_FLOAT_EQ(-12.5f, value);
+}
+
+TEST(Unformat, FloatWithPlusSign)
+{
+	float value = 0.0f;
+	ay::unformat("+9.25", "{}", value);
+	ASSERT_FLOAT_EQ(9.25f, value);
+}
+
+TEST(Unformat, FloatScientificNotation)
+{
+	double value = 0.0;
+	ay::unformat("-1.75e3", "{}", value);
+	ASSERT_DOUBLE_EQ(-1750.0, value);
+}
+
+TEST(Unformat, FloatLongInputFallback)
+{
+	double value = 0.0;
+	const char* input = "3.141592653589793238462643383279";
+	ay::unformat(input, "{}", value);
+	ASSERT_DOUBLE_EQ(std::strtod(input, nullptr), value);
+}
+
+TEST(Unformat, DirectUnformatArgString)
+{
+	const auto value = ay::unformat_arg<std::string>("hello world");
+	ASSERT_EQ(std::string("hello world"), value);
+}
+
+TEST(Unformat, FormatParsesAllPlaceholders)
+{
+	constexpr auto format = ay::make_format("{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}");
+	ASSERT_EQ(static_cast<std::size_t>(16), format.count);
 }
 
 namespace
