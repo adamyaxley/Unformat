@@ -7,6 +7,7 @@
 #endif
 
 #include <string>
+#include <cstdlib>
 #ifdef UNFORMAT_CPP17
 #include <string_view>
 #endif
@@ -56,6 +57,22 @@ namespace
 	template <typename T>
 	void unformat_real(const char* input, const char* inputEnd, T& output) noexcept
 	{
+		const auto inputStart = input;
+		const auto len = static_cast<std::size_t>(inputEnd - input);
+
+		// For very long inputs (e.g. %f formatted extreme values with hundreds
+		// of digits), use strtod for correct IEEE 754 rounding
+		if (len > 20)
+		{
+			char buf[400];
+			const auto n = len < sizeof(buf) - 1 ? len : sizeof(buf) - 1;
+			for (std::size_t i = 0; i < n; ++i) buf[i] = input[i];
+			buf[n] = '\0';
+			output = static_cast<T>(std::strtod(buf, nullptr));
+			return;
+		}
+
+		// Fast manual parser for simple fixed-point numbers (e.g. "67.8")
 		long double f = 0;
 
 		// Check for negative
@@ -73,7 +90,7 @@ namespace
 		}
 #endif
 
-		// Parse units
+		// Parse integer part
 		while (*input != '.' && input != inputEnd && *input != 'e')
 		{
 			f *= 10;
@@ -94,17 +111,15 @@ namespace
 			}
 		}
 
-		// Parse exponent
-		if (*input == 'e')
+		// For scientific notation, fall back to strtod for correct rounding
+		// with large exponents where f * pow(10, e) would lose precision
+		if (input != inputEnd && *input == 'e')
 		{
-			++input;
-			if (*input == '+')
-			{
-				++input; // Skip + as unformat_signed_int can't handle it
-			}
-			int e;
-			unformat_signed_int(input, inputEnd, e);
-			f *= pow(10L, e);
+			char buf[24];
+			for (std::size_t i = 0; i < len; ++i) buf[i] = inputStart[i];
+			buf[len] = '\0';
+			output = static_cast<T>(std::strtod(buf, nullptr));
+			return;
 		}
 
 		output = static_cast<T>(f);
