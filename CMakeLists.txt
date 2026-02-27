@@ -7,6 +7,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(DownloadProject/DownloadProject.cmake)
 
+set(UPDATE_DISCONNECTED_IF_AVAILABLE "UPDATE_DISCONNECTED 1")
+
 # Functional test
 download_project(PROJ                googletest
                  GIT_REPOSITORY      https://github.com/google/googletest.git
@@ -21,12 +23,6 @@ add_executable(unformat_test unformat.h unformat_test.cpp)
 target_link_libraries(unformat_test gtest gmock_main)
 
 # Benchmark
-if (CMAKE_VERSION VERSION_LESS 3.2)
-    set(UPDATE_DISCONNECTED_IF_AVAILABLE "")
-else()
-    set(UPDATE_DISCONNECTED_IF_AVAILABLE "UPDATE_DISCONNECTED 1")
-endif()
-
 download_project(PROJ                benchmark
                  GIT_REPOSITORY      https://github.com/google/benchmark.git
                  GIT_TAG             v1.7.1
