@@ -34,6 +34,3 @@ Benchmarks use Google Benchmark and are in `unformat_benchmark.cpp`. Always buil
 - All library code lives in `unformat.h` — keep it header-only
 - Use `ay::` namespace for public API (`ay::unformat`, `ay::make_format`)
 - `constexpr` format strings via `ay::make_format` for compile-time optimization
-
-## Known Issues
-- `FuzzDouble` test may fail on modern MSVC due to floating-point precision edge cases at extreme values
