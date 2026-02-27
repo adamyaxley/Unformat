@@ -7,12 +7,7 @@
 const char* g_input = "Harry is 18 years old and weighs 67.8 kilograms";
 const std::string g_inputString = g_input;
 
-#ifdef UNFORMAT_CPP17
-#include <string_view>
-using string_type = std::string_view;
-#else
-using string_type = std::string;
-#endif
+using string_type = ay::string_view;
 
 static void Unformat(benchmark::State& state)
 {
