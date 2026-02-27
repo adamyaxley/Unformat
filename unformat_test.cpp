@@ -144,6 +144,65 @@ TEST(Unformat, UnsignedIntegerLeadingZeros)
 	ASSERT_EQ(123u, value);
 }
 
+TEST(Unformat, IntegerBoundariesSigned)
+{
+	short shortMin = 0;
+	short shortMax = 0;
+	int intMin = 0;
+	int intMax = 0;
+	long long longLongMin = 0;
+	long long longLongMax = 0;
+
+	const auto shortMinStr = std::to_string(std::numeric_limits<short>::min());
+	const auto shortMaxStr = std::to_string(std::numeric_limits<short>::max());
+	const auto intMinStr = std::to_string(std::numeric_limits<int>::min());
+	const auto intMaxStr = std::to_string(std::numeric_limits<int>::max());
+	const auto longLongMinStr = std::to_string(std::numeric_limits<long long>::min());
+	const auto longLongMaxStr = std::to_string(std::numeric_limits<long long>::max());
+
+	ay::unformat(shortMinStr.c_str(), "{}", shortMin);
+	ay::unformat(shortMaxStr.c_str(), "{}", shortMax);
+	ay::unformat(intMinStr.c_str(), "{}", intMin);
+	ay::unformat(intMaxStr.c_str(), "{}", intMax);
+	ay::unformat(longLongMinStr.c_str(), "{}", longLongMin);
+	ay::unformat(longLongMaxStr.c_str(), "{}", longLongMax);
+
+	ASSERT_EQ(std::numeric_limits<short>::min(), shortMin);
+	ASSERT_EQ(std::numeric_limits<short>::max(), shortMax);
+	ASSERT_EQ(std::numeric_limits<int>::min(), intMin);
+	ASSERT_EQ(std::numeric_limits<int>::max(), intMax);
+	ASSERT_EQ(std::numeric_limits<long long>::min(), longLongMin);
+	ASSERT_EQ(std::numeric_limits<long long>::max(), longLongMax);
+}
+
+TEST(Unformat, IntegerBoundariesUnsigned)
+{
+	unsigned short ushortMin = 123;
+	unsigned short ushortMax = 0;
+	unsigned int uintMin = 123;
+	unsigned int uintMax = 0;
+	unsigned long long ullMin = 123;
+	unsigned long long ullMax = 0;
+
+	const auto ushortMaxStr = std::to_string(std::numeric_limits<unsigned short>::max());
+	const auto uintMaxStr = std::to_string(std::numeric_limits<unsigned int>::max());
+	const auto ullMaxStr = std::to_string(std::numeric_limits<unsigned long long>::max());
+
+	ay::unformat("0", "{}", ushortMin);
+	ay::unformat(ushortMaxStr.c_str(), "{}", ushortMax);
+	ay::unformat("0", "{}", uintMin);
+	ay::unformat(uintMaxStr.c_str(), "{}", uintMax);
+	ay::unformat("0", "{}", ullMin);
+	ay::unformat(ullMaxStr.c_str(), "{}", ullMax);
+
+	ASSERT_EQ(static_cast<unsigned short>(0), ushortMin);
+	ASSERT_EQ(std::numeric_limits<unsigned short>::max(), ushortMax);
+	ASSERT_EQ(0u, uintMin);
+	ASSERT_EQ(std::numeric_limits<unsigned int>::max(), uintMax);
+	ASSERT_EQ(0ull, ullMin);
+	ASSERT_EQ(std::numeric_limits<unsigned long long>::max(), ullMax);
+}
+
 TEST(Unformat, FloatFixedPoint)
 {
 	float value = 0.0f;
@@ -172,6 +231,33 @@ TEST(Unformat, FloatScientificNotation)
 	ASSERT_DOUBLE_EQ(-1750.0, value);
 }
 
+TEST(Unformat, FloatScientificNotationUppercaseE)
+{
+	double value = 0.0;
+	ay::unformat("1.5E2", "{}", value);
+	ASSERT_DOUBLE_EQ(150.0, value);
+}
+
+TEST(Unformat, FloatScientificNotationSignedExponent)
+{
+	double up = 0.0;
+	double down = 0.0;
+	ay::unformat("1e+3", "{}", up);
+	ay::unformat("1e-3", "{}", down);
+	ASSERT_DOUBLE_EQ(1000.0, up);
+	ASSERT_DOUBLE_EQ(0.001, down);
+}
+
+TEST(Unformat, FloatWithoutLeadingOrTrailingIntegerDigits)
+{
+	double leadingMissing = 0.0;
+	double trailingMissing = 0.0;
+	ay::unformat(".5", "{}", leadingMissing);
+	ay::unformat("5.", "{}", trailingMissing);
+	ASSERT_DOUBLE_EQ(0.5, leadingMissing);
+	ASSERT_DOUBLE_EQ(5.0, trailingMissing);
+}
+
 TEST(Unformat, FloatLongInputFallback)
 {
 	double value = 0.0;
@@ -186,11 +272,43 @@ TEST(Unformat, DirectUnformatArgString)
 	ASSERT_EQ(std::string("hello world"), value);
 }
 
+
 TEST(Unformat, FormatParsesAllPlaceholders)
 {
 	constexpr auto format = ay::make_format("{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}");
 	ASSERT_EQ(static_cast<std::size_t>(16), format.count);
 }
+
+TEST(Unformat, FormatThrowsWhenPlaceholderCountExceedsLimit)
+{
+	const std::string tooMany = "{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}";
+	EXPECT_THROW(
+		{
+			ay::format runtimeFormat(tooMany.c_str());
+			static_cast<void>(runtimeFormat);
+		},
+		std::exception);
+}
+
+#ifdef UNFORMAT_CPP17
+TEST(Unformat, UnformatArgStringView)
+{
+	std::string source = "hello-view";
+	std::string_view view(source.data(), source.size());
+	const auto output = ay::unformat_arg<std::string_view>(view);
+	ASSERT_EQ(view, output);
+}
+
+TEST(Unformat, StringViewOutputSpecialization)
+{
+	std::string source = "left|right";
+	std::string_view first;
+	std::string_view second;
+	ay::unformat(source.c_str(), "{}|{}", first, second);
+	ASSERT_EQ(std::string_view("left"), first);
+	ASSERT_EQ(std::string_view("right"), second);
+}
+#endif
 
 namespace
 {
