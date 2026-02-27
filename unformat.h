@@ -59,6 +59,7 @@ namespace
 	{
 		const auto inputStart = input;
 		const auto len = static_cast<std::size_t>(inputEnd - input);
+		bool negative = false;
 
 		// For very long inputs (e.g. %f formatted extreme values with hundreds
 		// of digits), use strtod for correct IEEE 754 rounding
@@ -78,7 +79,7 @@ namespace
 		// Check for negative
 		if (*input == '-')
 		{
-			f = -f;
+			negative = true;
 			++input;
 		}
 
@@ -91,7 +92,7 @@ namespace
 #endif
 
 		// Parse integer part
-		while (*input != '.' && input != inputEnd && *input != 'e')
+		while (*input != '.' && input != inputEnd && *input != 'e' && *input != 'E')
 		{
 			f *= 10;
 			f += (*input - '0');
@@ -103,7 +104,7 @@ namespace
 		{
 			++input;
 			long double decimal = 1.0L;
-			while (input != inputEnd && *input != 'e')
+			while (input != inputEnd && *input != 'e' && *input != 'E')
 			{
 				decimal *= 0.1L;
 				f += (*input - '0') * decimal;
@@ -113,13 +114,18 @@ namespace
 
 		// For scientific notation, fall back to strtod for correct rounding
 		// with large exponents where f * pow(10, e) would lose precision
-		if (input != inputEnd && *input == 'e')
+		if (input != inputEnd && (*input == 'e' || *input == 'E'))
 		{
 			char buf[24];
 			for (std::size_t i = 0; i < len; ++i) buf[i] = inputStart[i];
 			buf[len] = '\0';
 			output = static_cast<T>(std::strtod(buf, nullptr));
 			return;
+		}
+
+		if (negative)
+		{
+			f = -f;
 		}
 
 		output = static_cast<T>(f);
@@ -291,7 +297,7 @@ namespace ay
 				++format.count;
 				// Advance markers
 				from = to + 2;
-				to = from;
+				to = from - 1;
 			}
 		}
 
