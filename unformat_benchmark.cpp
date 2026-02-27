@@ -139,6 +139,20 @@ BENCHMARK(StdScanf);
 
 // --- Additional benchmarks for targeted optimization ---
 
+// Single float extraction to isolate float parsing cost
+static void Unformat_MakeFormat_SingleFloat(benchmark::State& state)
+{
+	float value;
+	for (auto _ : state)
+	{
+		constexpr auto format = ay::make_format("weight={}");
+		ay::unformat("weight=67.8", format, value);
+		benchmark::DoNotOptimize(value);
+	}
+}
+
+BENCHMARK(Unformat_MakeFormat_SingleFloat);
+
 // Single integer extraction with make_format
 static void Unformat_MakeFormat_SingleInt(benchmark::State& state)
 {
