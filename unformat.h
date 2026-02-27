@@ -59,6 +59,7 @@ namespace
 	{
 		const auto inputStart = input;
 		const auto len = static_cast<std::size_t>(inputEnd - input);
+		bool negative = false;
 
 		// For very long inputs (e.g. %f formatted extreme values with hundreds
 		// of digits), use strtod for correct IEEE 754 rounding
@@ -78,7 +79,7 @@ namespace
 		// Check for negative
 		if (*input == '-')
 		{
-			f = -f;
+			negative = true;
 			++input;
 		}
 
@@ -120,6 +121,11 @@ namespace
 			buf[len] = '\0';
 			output = static_cast<T>(std::strtod(buf, nullptr));
 			return;
+		}
+
+		if (negative)
+		{
+			f = -f;
 		}
 
 		output = static_cast<T>(f);
@@ -291,7 +297,7 @@ namespace ay
 				++format.count;
 				// Advance markers
 				from = to + 2;
-				to = from;
+				to = from - 1;
 			}
 		}
 
