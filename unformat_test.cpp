@@ -1,5 +1,4 @@
 #include "unformat.h"
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include <random>
 #include <limits>
@@ -150,6 +149,8 @@ TEST(Unformat, IntegerBoundariesSigned)
 	short shortMax = 0;
 	int intMin = 0;
 	int intMax = 0;
+	long longMin = 0;
+	long longMax = 0;
 	long long longLongMin = 0;
 	long long longLongMax = 0;
 
@@ -157,6 +158,8 @@ TEST(Unformat, IntegerBoundariesSigned)
 	const auto shortMaxStr = std::to_string(std::numeric_limits<short>::max());
 	const auto intMinStr = std::to_string(std::numeric_limits<int>::min());
 	const auto intMaxStr = std::to_string(std::numeric_limits<int>::max());
+	const auto longMinStr = std::to_string(std::numeric_limits<long>::min());
+	const auto longMaxStr = std::to_string(std::numeric_limits<long>::max());
 	const auto longLongMinStr = std::to_string(std::numeric_limits<long long>::min());
 	const auto longLongMaxStr = std::to_string(std::numeric_limits<long long>::max());
 
@@ -164,6 +167,8 @@ TEST(Unformat, IntegerBoundariesSigned)
 	ay::unformat(shortMaxStr.c_str(), "{}", shortMax);
 	ay::unformat(intMinStr.c_str(), "{}", intMin);
 	ay::unformat(intMaxStr.c_str(), "{}", intMax);
+	ay::unformat(longMinStr.c_str(), "{}", longMin);
+	ay::unformat(longMaxStr.c_str(), "{}", longMax);
 	ay::unformat(longLongMinStr.c_str(), "{}", longLongMin);
 	ay::unformat(longLongMaxStr.c_str(), "{}", longLongMax);
 
@@ -171,6 +176,8 @@ TEST(Unformat, IntegerBoundariesSigned)
 	ASSERT_EQ(std::numeric_limits<short>::max(), shortMax);
 	ASSERT_EQ(std::numeric_limits<int>::min(), intMin);
 	ASSERT_EQ(std::numeric_limits<int>::max(), intMax);
+	ASSERT_EQ(std::numeric_limits<long>::min(), longMin);
+	ASSERT_EQ(std::numeric_limits<long>::max(), longMax);
 	ASSERT_EQ(std::numeric_limits<long long>::min(), longLongMin);
 	ASSERT_EQ(std::numeric_limits<long long>::max(), longLongMax);
 }
@@ -181,17 +188,20 @@ TEST(Unformat, IntegerBoundariesUnsigned)
 	unsigned short ushortMax = 0;
 	unsigned int uintMin = 123;
 	unsigned int uintMax = 0;
+	unsigned long ulongMax = 0;
 	unsigned long long ullMin = 123;
 	unsigned long long ullMax = 0;
 
 	const auto ushortMaxStr = std::to_string(std::numeric_limits<unsigned short>::max());
 	const auto uintMaxStr = std::to_string(std::numeric_limits<unsigned int>::max());
+	const auto ulongMaxStr = std::to_string(std::numeric_limits<unsigned long>::max());
 	const auto ullMaxStr = std::to_string(std::numeric_limits<unsigned long long>::max());
 
 	ay::unformat("0", "{}", ushortMin);
 	ay::unformat(ushortMaxStr.c_str(), "{}", ushortMax);
 	ay::unformat("0", "{}", uintMin);
 	ay::unformat(uintMaxStr.c_str(), "{}", uintMax);
+	ay::unformat(ulongMaxStr.c_str(), "{}", ulongMax);
 	ay::unformat("0", "{}", ullMin);
 	ay::unformat(ullMaxStr.c_str(), "{}", ullMax);
 
@@ -199,43 +209,32 @@ TEST(Unformat, IntegerBoundariesUnsigned)
 	ASSERT_EQ(std::numeric_limits<unsigned short>::max(), ushortMax);
 	ASSERT_EQ(0u, uintMin);
 	ASSERT_EQ(std::numeric_limits<unsigned int>::max(), uintMax);
+	ASSERT_EQ(std::numeric_limits<unsigned long>::max(), ulongMax);
 	ASSERT_EQ(0ull, ullMin);
 	ASSERT_EQ(std::numeric_limits<unsigned long long>::max(), ullMax);
 }
 
 TEST(Unformat, FloatFixedPoint)
 {
-	float value = 0.0f;
-	ay::unformat("67.875", "{}", value);
-	ASSERT_FLOAT_EQ(67.875f, value);
-}
-
-TEST(Unformat, FloatNegativeFixedPoint)
-{
-	float value = 0.0f;
-	ay::unformat("-12.5", "{}", value);
-	ASSERT_FLOAT_EQ(-12.5f, value);
-}
-
-TEST(Unformat, FloatWithPlusSign)
-{
-	float value = 0.0f;
-	ay::unformat("+9.25", "{}", value);
-	ASSERT_FLOAT_EQ(9.25f, value);
+	float positive = 0.0f;
+	float negative = 0.0f;
+	float plusSign = 0.0f;
+	ay::unformat("67.875", "{}", positive);
+	ay::unformat("-12.5", "{}", negative);
+	ay::unformat("+9.25", "{}", plusSign);
+	ASSERT_FLOAT_EQ(67.875f, positive);
+	ASSERT_FLOAT_EQ(-12.5f, negative);
+	ASSERT_FLOAT_EQ(9.25f, plusSign);
 }
 
 TEST(Unformat, FloatScientificNotation)
 {
-	double value = 0.0;
-	ay::unformat("-1.75e3", "{}", value);
-	ASSERT_DOUBLE_EQ(-1750.0, value);
-}
-
-TEST(Unformat, FloatScientificNotationUppercaseE)
-{
-	double value = 0.0;
-	ay::unformat("1.5E2", "{}", value);
-	ASSERT_DOUBLE_EQ(150.0, value);
+	double lowercase = 0.0;
+	double uppercase = 0.0;
+	ay::unformat("-1.75e3", "{}", lowercase);
+	ay::unformat("1.5E2", "{}", uppercase);
+	ASSERT_DOUBLE_EQ(-1750.0, lowercase);
+	ASSERT_DOUBLE_EQ(150.0, uppercase);
 }
 
 TEST(Unformat, FloatScientificNotationSignedExponent)
@@ -260,10 +259,14 @@ TEST(Unformat, FloatWithoutLeadingOrTrailingIntegerDigits)
 
 TEST(Unformat, FloatLongInputFallback)
 {
-	double value = 0.0;
-	const char* input = "3.141592653589793238462643383279";
-	ay::unformat(input, "{}", value);
-	ASSERT_DOUBLE_EQ(std::strtod(input, nullptr), value);
+	double positive = 0.0;
+	double negative = 0.0;
+	const char* posInput = "3.141592653589793238462643383279";
+	const char* negInput = "-3.141592653589793238462643383279";
+	ay::unformat(posInput, "{}", positive);
+	ay::unformat(negInput, "{}", negative);
+	ASSERT_DOUBLE_EQ(std::strtod(posInput, nullptr), positive);
+	ASSERT_DOUBLE_EQ(std::strtod(negInput, nullptr), negative);
 }
 
 TEST(Unformat, DirectUnformatArgString)
@@ -272,6 +275,81 @@ TEST(Unformat, DirectUnformatArgString)
 	ASSERT_EQ(std::string("hello world"), value);
 }
 
+TEST(Unformat, ZeroValues)
+{
+	int signedOut = -1;
+	unsigned int unsignedOut = 99;
+	float fval = 1.0f;
+	double dval = 1.0;
+	ay::unformat("0", "{}", signedOut);
+	ay::unformat("0", "{}", unsignedOut);
+	ay::unformat("0.0", "{}", fval);
+	ay::unformat("0.0", "{}", dval);
+	ASSERT_EQ(0, signedOut);
+	ASSERT_EQ(0u, unsignedOut);
+	ASSERT_FLOAT_EQ(0.0f, fval);
+	ASSERT_DOUBLE_EQ(0.0, dval);
+}
+
+TEST(Unformat, NegativeZeroFloat)
+{
+	double value = 1.0;
+	ay::unformat("-0.0", "{}", value);
+	ASSERT_DOUBLE_EQ(0.0, std::abs(value));
+	ASSERT_TRUE(std::signbit(value));
+}
+
+TEST(Unformat, UnformatArgReturnByValueNumeric)
+{
+	const char* intStr = "42";
+	const char* floatStr = "3.25";
+
+	auto intVal = ay::unformat_arg<int>(intStr, intStr + 2);
+	auto floatVal = ay::unformat_arg<double>(floatStr, floatStr + 4);
+
+	ASSERT_EQ(42, intVal);
+	ASSERT_DOUBLE_EQ(3.25, floatVal);
+}
+
+TEST(Unformat, NegativeScientificNotationUppercaseE)
+{
+	double value = 0.0;
+	ay::unformat("-2.5E4", "{}", value);
+	ASSERT_DOUBLE_EQ(-25000.0, value);
+}
+
+TEST(Unformat, FormatWithNoPlaceholders)
+{
+	constexpr auto format = ay::make_format("hello");
+	ASSERT_EQ(static_cast<std::size_t>(0), format.count);
+}
+
+TEST(Unformat, FormatIgnoresNonPlaceholderBraces)
+{
+	constexpr auto format = ay::make_format("{ } {x} {}");
+	ASSERT_EQ(static_cast<std::size_t>(1), format.count);
+}
+
+TEST(Unformat, MixedTypeExtraction)
+{
+	char c = '\0';
+	int i = 0;
+	double d = 0.0;
+	std::string s;
+	ay::unformat("A|42|3.5|hello world", "{}|{}|{}|{}", c, i, d, s);
+	ASSERT_EQ('A', c);
+	ASSERT_EQ(42, i);
+	ASSERT_DOUBLE_EQ(3.5, d);
+	ASSERT_EQ(std::string("hello world"), s);
+}
+
+TEST(Unformat, CharFromMultiCharCapture)
+{
+	char output = '\0';
+	std::string rest;
+	ay::unformat("XYZ|end", "{}|{}", output, rest);
+	ASSERT_EQ('X', output);
+}
 
 TEST(Unformat, FormatParsesAllPlaceholders)
 {
