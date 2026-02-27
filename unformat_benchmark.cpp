@@ -137,4 +137,122 @@ static void StdScanf(benchmark::State& state)
 
 BENCHMARK(StdScanf);
 
+// --- Additional benchmarks for targeted optimization ---
+
+// Single integer extraction with make_format
+static void Unformat_MakeFormat_SingleInt(benchmark::State& state)
+{
+	int value;
+	for (auto _ : state)
+	{
+		constexpr auto format = ay::make_format("value={}");
+		ay::unformat("value=42", format, value);
+		benchmark::DoNotOptimize(value);
+	}
+}
+
+BENCHMARK(Unformat_MakeFormat_SingleInt);
+
+// Two integers with make_format
+static void Unformat_MakeFormat_TwoInts(benchmark::State& state)
+{
+	int x, y;
+	for (auto _ : state)
+	{
+		constexpr auto format = ay::make_format("{},{}");
+		ay::unformat("100,200", format, x, y);
+		benchmark::DoNotOptimize(x);
+		benchmark::DoNotOptimize(y);
+	}
+}
+
+BENCHMARK(Unformat_MakeFormat_TwoInts);
+
+// String extraction with make_format
+static void Unformat_MakeFormat_StringOnly(benchmark::State& state)
+{
+	string_type name;
+	for (auto _ : state)
+	{
+		constexpr auto format = ay::make_format("hello {}!");
+		ay::unformat("hello world!", format, name);
+		benchmark::DoNotOptimize(name);
+	}
+}
+
+BENCHMARK(Unformat_MakeFormat_StringOnly);
+
+// Mixed types: string + int + float with make_format
+static void Unformat_MakeFormat_MixedThree(benchmark::State& state)
+{
+	string_type name;
+	int count;
+	float price;
+	for (auto _ : state)
+	{
+		constexpr auto format = ay::make_format("{}: {} at {}");
+		ay::unformat("apple: 5 at 1.99", format, name, count, price);
+		benchmark::DoNotOptimize(name);
+		benchmark::DoNotOptimize(count);
+		benchmark::DoNotOptimize(price);
+	}
+}
+
+BENCHMARK(Unformat_MakeFormat_MixedThree);
+
+// Longer input string with make_format
+static void Unformat_MakeFormat_LongInput(benchmark::State& state)
+{
+	string_type a, b, c;
+	int x, y;
+	for (auto _ : state)
+	{
+		constexpr auto format = ay::make_format("{} connected to {} via {} with {} hops and {} ms latency");
+		ay::unformat("server1 connected to server2 via gateway with 3 hops and 42 ms latency", format, a, b, c, x, y);
+		benchmark::DoNotOptimize(a);
+		benchmark::DoNotOptimize(b);
+		benchmark::DoNotOptimize(c);
+		benchmark::DoNotOptimize(x);
+		benchmark::DoNotOptimize(y);
+	}
+}
+
+BENCHMARK(Unformat_MakeFormat_LongInput);
+
+// Compare: same workload without make_format (inline format string)
+static void Unformat_Inline_LongInput(benchmark::State& state)
+{
+	string_type a, b, c;
+	int x, y;
+	for (auto _ : state)
+	{
+		ay::unformat("server1 connected to server2 via gateway with 3 hops and 42 ms latency",
+			"{} connected to {} via {} with {} hops and {} ms latency", a, b, c, x, y);
+		benchmark::DoNotOptimize(a);
+		benchmark::DoNotOptimize(b);
+		benchmark::DoNotOptimize(c);
+		benchmark::DoNotOptimize(x);
+		benchmark::DoNotOptimize(y);
+	}
+}
+
+BENCHMARK(Unformat_Inline_LongInput);
+
+// Integer-only parsing (4 ints) with make_format
+static void Unformat_MakeFormat_FourInts(benchmark::State& state)
+{
+	int a, b, c, d;
+	for (auto _ : state)
+	{
+		constexpr auto format = ay::make_format("{}.{}.{}.{}");
+		ay::unformat("192.168.1.1", format, a, b, c, d);
+		benchmark::DoNotOptimize(a);
+		benchmark::DoNotOptimize(b);
+		benchmark::DoNotOptimize(c);
+		benchmark::DoNotOptimize(d);
+	}
+}
+
+BENCHMARK(Unformat_MakeFormat_FourInts);
+
 BENCHMARK_MAIN();
