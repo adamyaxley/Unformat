@@ -92,7 +92,7 @@ namespace
 #endif
 
 		// Parse integer part
-		while (*input != '.' && input != inputEnd && *input != 'e')
+		while (*input != '.' && input != inputEnd && *input != 'e' && *input != 'E')
 		{
 			f *= 10;
 			f += (*input - '0');
@@ -104,7 +104,7 @@ namespace
 		{
 			++input;
 			long double decimal = 1.0L;
-			while (input != inputEnd && *input != 'e')
+			while (input != inputEnd && *input != 'e' && *input != 'E')
 			{
 				decimal *= 0.1L;
 				f += (*input - '0') * decimal;
@@ -114,7 +114,7 @@ namespace
 
 		// For scientific notation, fall back to strtod for correct rounding
 		// with large exponents where f * pow(10, e) would lose precision
-		if (input != inputEnd && *input == 'e')
+		if (input != inputEnd && (*input == 'e' || *input == 'E'))
 		{
 			char buf[24];
 			for (std::size_t i = 0; i < len; ++i) buf[i] = inputStart[i];
