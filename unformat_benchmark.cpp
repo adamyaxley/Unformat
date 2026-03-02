@@ -264,4 +264,46 @@ static void Unformat_MakeFormat_FourInts(benchmark::State& state)
 
 BENCHMARK(Unformat_MakeFormat_FourInts);
 
+// Cold path: scientific notation (triggers unformat_strtod)
+static void Unformat_MakeFormat_SciNotation(benchmark::State& state)
+{
+	double value;
+	for (auto _ : state)
+	{
+		constexpr auto format = ay::make_format("val={}");
+		ay::unformat("val=6.022e23", format, value);
+		benchmark::DoNotOptimize(value);
+	}
+}
+
+BENCHMARK(Unformat_MakeFormat_SciNotation);
+
+// Cold path: large exponent scientific notation
+static void Unformat_MakeFormat_SciNotationLargeExp(benchmark::State& state)
+{
+	double value;
+	for (auto _ : state)
+	{
+		constexpr auto format = ay::make_format("val={}");
+		ay::unformat("val=1.7976931348623157e308", format, value);
+		benchmark::DoNotOptimize(value);
+	}
+}
+
+BENCHMARK(Unformat_MakeFormat_SciNotationLargeExp);
+
+// Cold path: very long decimal input (>18 digits, triggers strtod)
+static void Unformat_MakeFormat_LongDecimal(benchmark::State& state)
+{
+	double value;
+	for (auto _ : state)
+	{
+		constexpr auto format = ay::make_format("val={}");
+		ay::unformat("val=3.141592653589793238462643383279", format, value);
+		benchmark::DoNotOptimize(value);
+	}
+}
+
+BENCHMARK(Unformat_MakeFormat_LongDecimal);
+
 BENCHMARK_MAIN();
