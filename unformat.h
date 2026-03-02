@@ -54,15 +54,15 @@ namespace
 		return s;
 	}
 
-	UNFORMAT_NOINLINE double unformat_strtod(const char* buf) noexcept
+	UNFORMAT_NOINLINE double unformat_strtod(const char* buf, const char* bufEnd) noexcept
 	{
 		// String-to-double for scientific notation and long inputs.
 		// Accumulates up to 18 significant digits to stay within ULL precision,
 		// then tracks remaining digits as implicit exponent.
 		const char* p = buf;
 		bool negative = false;
-		if (*p == '-') { negative = true; ++p; }
-		else if (*p == '+') { ++p; }
+		if (p < bufEnd && *p == '-') { negative = true; ++p; }
+		else if (p < bufEnd && *p == '+') { ++p; }
 
 		unsigned long long mantissa = 0;
 		int exponent = 0;
@@ -70,7 +70,7 @@ namespace
 		const int MAX_SIG = 18; // fits in unsigned long long
 
 		// Integer part
-		while (static_cast<unsigned>(*p - '0') <= 9u)
+		while (p < bufEnd && static_cast<unsigned>(*p - '0') <= 9u)
 		{
 			if (sig_digits < MAX_SIG)
 			{
@@ -86,10 +86,10 @@ namespace
 		}
 
 		// Fractional part
-		if (*p == '.')
+		if (p < bufEnd && *p == '.')
 		{
 			++p;
-			while (static_cast<unsigned>(*p - '0') <= 9u)
+			while (p < bufEnd && static_cast<unsigned>(*p - '0') <= 9u)
 			{
 				if (sig_digits < MAX_SIG)
 				{
@@ -103,15 +103,15 @@ namespace
 		}
 
 		// Scientific notation exponent
-		if (*p == 'e' || *p == 'E')
+		if (p < bufEnd && (*p == 'e' || *p == 'E'))
 		{
 			++p;
 			bool exp_neg = false;
-			if (*p == '-') { exp_neg = true; ++p; }
-			else if (*p == '+') { ++p; }
+			if (p < bufEnd && *p == '-') { exp_neg = true; ++p; }
+			else if (p < bufEnd && *p == '+') { ++p; }
 
 			int exp = 0;
-			while (static_cast<unsigned>(*p - '0') <= 9u)
+			while (p < bufEnd && static_cast<unsigned>(*p - '0') <= 9u)
 			{
 				exp = exp * 10 + (*p - '0');
 				++p;
@@ -245,7 +245,6 @@ namespace
 	void unformat_real(const char* input, const char* inputEnd, T& output) noexcept
 	{
 		const auto inputStart = input;
-		const auto len = static_cast<std::size_t>(inputEnd - input);
 		bool negative = false;
 
 		// Check for negative
@@ -319,11 +318,7 @@ namespace
 
 		if (use_strtod)
 		{
-			char buf[400];
-			const auto n = len < sizeof(buf) - 1 ? len : sizeof(buf) - 1;
-			for (std::size_t i = 0; i < n; ++i) buf[i] = inputStart[i];
-			buf[n] = '\0';
-			output = static_cast<T>(unformat_strtod(buf));
+			output = static_cast<T>(unformat_strtod(inputStart, inputEnd));
 			return;
 		}
 
@@ -385,12 +380,7 @@ namespace
 	{
 		const char* end = inputCurrent;
 		while (*end != endCh) ++end;
-		auto len = static_cast<std::size_t>(end - inputStart);
-		char buf[400];
-		auto n = len < sizeof(buf) - 1 ? len : sizeof(buf) - 1;
-		for (std::size_t i = 0; i < n; ++i) buf[i] = inputStart[i];
-		buf[n] = '\0';
-		output = static_cast<T>(unformat_strtod(buf));
+		output = static_cast<T>(unformat_strtod(inputStart, end));
 		return end;
 	}
 
