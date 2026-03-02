@@ -54,6 +54,27 @@ namespace
 		return s;
 	}
 
+	// Lookup table for negative powers of 10, used to convert integer mantissa
+	// to floating point with a single multiply at the end
+	static const double unformat_pow10_neg[] = {
+		1.0, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9,
+		1e-10, 1e-11, 1e-12, 1e-13, 1e-14, 1e-15, 1e-16, 1e-17, 1e-18, 1e-19,
+		1e-20, 1e-21, 1e-22
+	};
+
+	// Exact positive powers of 10 representable in double (0..22)
+	static const double unformat_pow10_exact[] = {
+		1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9,
+		1e10, 1e11, 1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19,
+		1e20, 1e21, 1e22
+	};
+
+	// Powers of 10 in multiples of 22, for large exponent application
+	static const double unformat_pow10_22x[] = {
+		1e0, 1e22, 1e44, 1e66, 1e88, 1e110, 1e132, 1e154,
+		1e176, 1e198, 1e220, 1e242, 1e264, 1e286, 1e308
+	};
+
 	UNFORMAT_NOINLINE double unformat_strtod(const char* buf, const char* bufEnd) noexcept
 	{
 		// String-to-double for scientific notation and long inputs.
@@ -119,74 +140,48 @@ namespace
 			exponent += exp_neg ? -exp : exp;
 		}
 
-		// Apply combined exponent with exact pow10 lookup tables.
-		// pow10_exact[0..22] are exactly representable in double.
-		// pow10_22x[k] = 1e(22*k) for large exponents, allowing any
-		// exponent up to 308 to be applied in at most 2 multiplications.
+		// Apply combined exponent using shared pow10 lookup tables.
 		double result = static_cast<double>(mantissa);
 		if (exponent != 0)
 		{
-			static const double pow10_exact[] = {
-				1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9,
-				1e10, 1e11, 1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19,
-				1e20, 1e21, 1e22
-			};
-			static const double pow10_22x[] = {
-				1e0, 1e22, 1e44, 1e66, 1e88, 1e110, 1e132, 1e154,
-				1e176, 1e198, 1e220, 1e242, 1e264, 1e286, 1e308
-			};
 			int abs_exp = exponent < 0 ? -exponent : exponent;
 			if (abs_exp <= 22)
 			{
-				// Single exact multiply
-				result = exponent > 0 ? result * pow10_exact[abs_exp] : result / pow10_exact[abs_exp];
+				result = exponent > 0 ? result * unformat_pow10_exact[abs_exp] : result / unformat_pow10_exact[abs_exp];
 			}
 			else if (abs_exp <= 308)
 			{
-				// Split: exact remainder * precomputed multiple-of-22
 				int remainder = abs_exp % 22;
 				int multiple = abs_exp / 22;
 				if (exponent > 0)
 				{
-					result *= pow10_exact[remainder];
-					result *= pow10_22x[multiple];
+					result *= unformat_pow10_exact[remainder];
+					result *= unformat_pow10_22x[multiple];
 				}
 				else
 				{
-					result /= pow10_exact[remainder];
-					result /= pow10_22x[multiple];
+					result /= unformat_pow10_exact[remainder];
+					result /= unformat_pow10_22x[multiple];
 				}
 			}
 			else
 			{
-				// Beyond double range — will become 0 or inf
+				// Beyond double range — apply 1e308, then clamp remainder
+				int remaining = abs_exp - 308;
+				if (remaining > 308) remaining = 308;
+				int r = remaining % 22;
+				int m = remaining / 22;
 				if (exponent > 0)
 				{
-					result *= pow10_22x[14]; // 1e308
-					int remaining = abs_exp - 308;
-					while (remaining > 0)
-					{
-						int step = remaining > 308 ? 308 : remaining;
-						int r = step % 22;
-						int m = step / 22;
-						result *= pow10_exact[r];
-						result *= pow10_22x[m];
-						remaining -= step;
-					}
+					result *= unformat_pow10_22x[14];
+					result *= unformat_pow10_exact[r];
+					result *= unformat_pow10_22x[m];
 				}
 				else
 				{
-					result /= pow10_22x[14]; // 1e308
-					int remaining = abs_exp - 308;
-					while (remaining > 0)
-					{
-						int step = remaining > 308 ? 308 : remaining;
-						int r = step % 22;
-						int m = step / 22;
-						result /= pow10_exact[r];
-						result /= pow10_22x[m];
-						remaining -= step;
-					}
+					result /= unformat_pow10_22x[14];
+					result /= unformat_pow10_exact[r];
+					result /= unformat_pow10_22x[m];
 				}
 			}
 		}
@@ -234,17 +229,9 @@ namespace
 		}
 	}
 
-	// Lookup table for negative powers of 10, used to convert integer mantissa
-	// to floating point with a single multiply at the end
-	static const double unformat_pow10_neg[] = {
-		1.0, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9,
-		1e-10, 1e-11, 1e-12, 1e-13, 1e-14, 1e-15, 1e-16, 1e-17, 1e-18, 1e-19, 1e-20
-	};
-
 	template <typename T>
 	void unformat_real(const char* input, const char* inputEnd, T& output) noexcept
 	{
-		const auto inputStart = input;
 		bool negative = false;
 
 		// Check for negative
@@ -298,28 +285,63 @@ namespace
 			}
 		}
 
-		// Scientific notation or exponent too large for direct lookup: use strtod
-		bool use_strtod = (input != inputEnd && (*input == 'e' || *input == 'E'));
+		// Scientific notation exponent
+		if (input != inputEnd && (*input == 'e' || *input == 'E'))
+		{
+			++input;
+			bool exp_neg = false;
+			if (*input == '-') { exp_neg = true; ++input; }
+			else if (*input == '+') { ++input; }
+			int exp = 0;
+			for (unsigned d; (d = static_cast<unsigned>(*input - '0')) <= 9u; ++input)
+				exp = exp * 10 + static_cast<int>(d);
+			exponent += exp_neg ? -exp : exp;
+		}
 
 		// Convert mantissa to double and apply exponent
 		double result = static_cast<double>(mantissa);
-		if (!use_strtod && exponent != 0)
+		if (exponent != 0)
 		{
 			int abs_exp = exponent < 0 ? -exponent : exponent;
-			if (abs_exp <= 20)
+			if (abs_exp <= 22)
 			{
-				result = exponent > 0 ? result * (1.0 / unformat_pow10_neg[abs_exp]) : result * unformat_pow10_neg[abs_exp];
+				result = exponent > 0 ? result * unformat_pow10_exact[abs_exp] : result * unformat_pow10_neg[abs_exp];
+			}
+			else if (abs_exp <= 308)
+			{
+				int remainder = abs_exp % 22;
+				int multiple = abs_exp / 22;
+				if (exponent > 0)
+				{
+					result *= unformat_pow10_exact[remainder];
+					result *= unformat_pow10_22x[multiple];
+				}
+				else
+				{
+					result /= unformat_pow10_exact[remainder];
+					result /= unformat_pow10_22x[multiple];
+				}
 			}
 			else
 			{
-				use_strtod = true;
+				// Beyond double range — apply 1e308, then clamp remainder
+				int remaining = abs_exp - 308;
+				if (remaining > 308) remaining = 308;
+				int r = remaining % 22;
+				int m = remaining / 22;
+				if (exponent > 0)
+				{
+					result *= unformat_pow10_22x[14];
+					result *= unformat_pow10_exact[r];
+					result *= unformat_pow10_22x[m];
+				}
+				else
+				{
+					result /= unformat_pow10_22x[14];
+					result /= unformat_pow10_exact[r];
+					result /= unformat_pow10_22x[m];
+				}
 			}
-		}
-
-		if (use_strtod)
-		{
-			output = static_cast<T>(unformat_strtod(inputStart, inputEnd));
-			return;
 		}
 
 		if (negative)
